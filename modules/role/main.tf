@@ -38,10 +38,9 @@ data "aws_iam_policy_document" "ro" {
       test     = "StringLike"
       variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
       values = [
-        for repo in var.repositories :
         format(replace(local.selected_provider.subject_branch_mapping, format("/%s/", local.template_keys_regex), "%s"), [
           for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_branch_mapping)) : {
-            repo = repo
+            repo = var.repository
             type = "branch"
             ref  = var.unprotected_branch
           }[v]
@@ -104,10 +103,9 @@ data "aws_iam_policy_document" "rw" {
       test     = "StringLike"
       variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
       values = [
-        for repo in var.repositories :
         format(replace(local.selected_provider.subject_branch_mapping, format("/%s/", local.template_keys_regex), "%s"), [
           for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_branch_mapping)) : {
-            repo = repo
+            repo = var.repository
             type = "branch"
             ref  = var.protected_branch
           }[v]
@@ -119,10 +117,9 @@ data "aws_iam_policy_document" "rw" {
       test     = "StringLike"
       variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
       values = [
-        for repo in var.repositories :
         format(replace(local.selected_provider.subject_tag_mapping, format("/%s/", local.template_keys_regex), "%s"), [
           for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_tag_mapping)) : {
-            repo = repo
+            repo = var.repository
             type = "tag"
             ref  = var.protected_tag
           }[v]

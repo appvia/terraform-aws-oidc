@@ -28,12 +28,8 @@ run "gitlab_providers" {
 
   variables {
     name            = "common"
+    repository      = "appvia/something"
     common_provider = "gitlab"
-
-    repositories = [
-      "appvia/something",
-      "appvia/something-else",
-    ]
   }
 }
 
@@ -45,7 +41,8 @@ run "custom_providers" {
   }
 
   variables {
-    name = "custom"
+    name       = "custom"
+    repository = "appvia/something"
 
     custom_provider = {
       url                    = "https://token.actions.githubusercontent.com"
@@ -53,9 +50,5 @@ run "custom_providers" {
       subject_branch_mapping = "repo={repo},branch={ref}"
       subject_tag_mapping    = "repo={repo},tag={ref}"
     }
-
-    repositories = [
-      "appvia/something",
-    ]
   }
 }

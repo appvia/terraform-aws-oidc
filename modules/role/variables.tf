@@ -33,8 +33,8 @@ variable "additional_audiences" {
   description = "Additional audiences to be allowed in the OIDC federation mapping"
 }
 
-variable "repositories" {
-  type        = list(string)
+variable "repository" {
+  type        = string
   description = "List of repositories to be allowed i nthe OIDC federation mapping"
 }
 

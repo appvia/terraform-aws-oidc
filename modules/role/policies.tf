@@ -30,8 +30,7 @@ data "aws_iam_policy_document" "tfstate_plan" {
     ]
 
     resources = [
-      for repo in var.repositories :
-      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, repo)
+      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, var.repository)
     ]
   }
 }
@@ -76,8 +75,7 @@ data "aws_iam_policy_document" "tfstate_apply" {
     ]
 
     resources = [
-      for repo in var.repositories :
-      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, repo)
+      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, var.repository)
     ]
   }
 }
