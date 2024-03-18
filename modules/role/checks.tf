@@ -12,12 +12,12 @@ check "provider_config" {
 
 check "policy_config" {
   assert {
-    condition     = !(length(var.read_only_policies) == 0 && length(var.read_only_inline_policies) == 0)
+    condition     = !(length(var.read_only_policy_arns) == 0 && length(var.read_only_inline_policies) == 0)
     error_message = "Either 'read_only_policies' or 'read_only_inline_policies' must be specified"
   }
 
   assert {
-    condition     = !(length(var.read_write_policies) == 0 && length(var.read_write_inline_policies) == 0)
+    condition     = !(length(var.read_write_policy_arns) == 0 && length(var.read_write_inline_policies) == 0)
     error_message = "Either 'read_write_policies' or 'read_write_inline_policies' must be specified"
   }
 }

@@ -10,17 +10,18 @@ run "github_providers" {
   }
 
   variables {
-    name                = "common"
-    description         = "Test role using GitHub OIDC provider"
-    repository          = "appvia/something"
-    common_provider     = "github"
-    permission_boundary = "AdministratorAccess"
+    name            = "common"
+    description     = "Test role using GitHub OIDC provider"
+    repository      = "appvia/something"
+    common_provider = "github"
 
-    read_only_policies = [
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+    read_only_policy_arns = [
       "arn:aws:iam::aws:policy/ReadOnlyAccess",
     ]
 
-    read_write_policies = [
+    read_write_policy_arns = [
       "arn:aws:iam::aws:policy/AdministratorAccess",
     ]
   }
@@ -34,17 +35,18 @@ run "gitlab_providers" {
   }
 
   variables {
-    name                = "common"
-    description         = "Test role using GitLab OIDC provider"
-    repository          = "appvia/something"
-    common_provider     = "gitlab"
-    permission_boundary = "AdministratorAccess"
+    name            = "common"
+    description     = "Test role using GitLab OIDC provider"
+    repository      = "appvia/something"
+    common_provider = "gitlab"
 
-    read_only_policies = [
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+    read_only_policy_arns = [
       "arn:aws:iam::aws:policy/ReadOnlyAccess",
     ]
 
-    read_write_policies = [
+    read_write_policy_arns = [
       "arn:aws:iam::aws:policy/AdministratorAccess",
     ]
   }
@@ -58,10 +60,9 @@ run "custom_providers" {
   }
 
   variables {
-    name                = "custom"
-    description         = "Test role using custom OIDC provider"
-    repository          = "appvia/something"
-    permission_boundary = "AdministratorAccess"
+    name        = "custom"
+    description = "Test role using custom OIDC provider"
+    repository  = "appvia/something"
 
     custom_provider = {
       url                    = "https://token.actions.githubusercontent.com"
@@ -69,6 +70,8 @@ run "custom_providers" {
       subject_branch_mapping = "repo={repo},branch={ref}"
       subject_tag_mapping    = "repo={repo},tag={ref}"
     }
+
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 
     read_only_inline_policies = {
       ReadOnly = jsonencode({

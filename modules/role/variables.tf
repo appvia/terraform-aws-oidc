@@ -61,7 +61,7 @@ variable "role_path" {
   description = "Path under which to create IAM role."
 }
 
-variable "read_only_policies" {
+variable "read_only_policy_arns" {
   type        = list(string)
   default     = []
   description = "List of IAM policy ARNs to attach to the read-only role"
@@ -73,7 +73,7 @@ variable "read_only_inline_policies" {
   description = "Inline policies map with policy name as key and json as value."
 }
 
-variable "read_write_policies" {
+variable "read_write_policy_arns" {
   type        = list(string)
   default     = []
   description = "List of IAM policy ARNs to attach to the read-write role"
@@ -103,7 +103,7 @@ variable "force_detach_policies" {
   description = "Flag to force detachment of policies attached to the IAM role."
 }
 
-variable "permission_boundary" {
+variable "permission_boundary_arn" {
   type        = string
   default     = null
   description = "The ARN of the policy that is used to set the permissions boundary for the IAM role"
