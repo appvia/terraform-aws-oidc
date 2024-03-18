@@ -70,7 +70,7 @@ resource "aws_iam_role" "ro" {
     }
   }
 
-  tags = merge(var.tags, var.read_only_tags, {
+  tags = merge(var.tags, {
     Name = format("%s-ro", var.name)
   })
 }
@@ -151,7 +151,7 @@ resource "aws_iam_role" "rw" {
     }
   }
 
-  tags = merge(var.tags, var.read_write_tags, {
+  tags = merge(var.tags, {
     Name = format("%s-rw", var.name)
   })
 }

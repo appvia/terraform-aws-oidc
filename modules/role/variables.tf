@@ -98,18 +98,6 @@ variable "permissions_boundary" {
   description = "The ARN of the policy that is used to set the permissions boundary for the IAM role"
 }
 
-variable "read_only_tags" {
-  type        = map(string)
-  default     = {}
-  description = "Tags to apply to the read-only role"
-}
-
-variable "read_write_tags" {
-  type        = map(string)
-  default     = {}
-  description = "Tags to apply to the read-write role"
-}
-
 variable "tags" {
   type        = map(string)
   default     = {}
