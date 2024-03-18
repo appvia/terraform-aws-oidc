@@ -99,14 +99,8 @@ data "aws_iam_policy_document" "rw" {
             type = "branch"
             ref  = var.protected_branch
           }[v]
-        ]...)
-      ]
-    }
+        ]...),
 
-    condition {
-      test     = "StringLike"
-      variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
-      values = [
         format(replace(local.selected_provider.subject_tag_mapping, format("/%s/", local.template_keys_regex), "%s"), [
           for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_tag_mapping)) : {
             repo = var.repository
