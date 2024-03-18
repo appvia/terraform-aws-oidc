@@ -41,6 +41,11 @@ resource "aws_iam_policy" "tfstate_plan" {
   policy      = data.aws_iam_policy_document.tfstate_plan.json
 }
 
+resource "aws_iam_role_policy_attachment" "tfstate_plan" {
+  policy_arn = aws_iam_policy.tfstate_plan.arn
+  role       = aws_iam_role.ro.name
+}
+
 data "aws_iam_policy_document" "tfstate_apply" {
   statement {
     actions = [
@@ -84,4 +89,9 @@ resource "aws_iam_policy" "tfstate_apply" {
   name        = format("%s-tfstate-apply", var.name)
   description = "Policy allowing write access to the Terraform state bucket and DynamoDB table for the ${var.name} role"
   policy      = data.aws_iam_policy_document.tfstate_apply.json
+}
+
+resource "aws_iam_role_policy_attachment" "tfstate_apply" {
+  policy_arn = aws_iam_policy.tfstate_apply.arn
+  role       = aws_iam_role.rw.name
 }

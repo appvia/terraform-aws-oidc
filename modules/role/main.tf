@@ -1,15 +1,3 @@
-check "provider_config" {
-  assert {
-    condition     = !(var.common_provider == "" && var.custom_provider == null)
-    error_message = "Either 'common_provider' or 'custom_provider' must be specified"
-  }
-
-  assert {
-    condition     = !(var.common_provider != "" && var.custom_provider != null)
-    error_message = "Only one of 'common_provider' or 'custom_provider' may be specified"
-  }
-}
-
 data "aws_iam_openid_connect_provider" "this" {
   url = local.selected_provider.url
 }
@@ -83,7 +71,9 @@ resource "aws_iam_role" "ro" {
 }
 
 resource "aws_iam_role_policy_attachment" "ro" {
-  policy_arn = aws_iam_policy.tfstate_plan.arn
+  for_each = toset(var.read_only_policies)
+
+  policy_arn = each.key
   role       = aws_iam_role.ro.name
 }
 
@@ -162,6 +152,8 @@ resource "aws_iam_role" "rw" {
 }
 
 resource "aws_iam_role_policy_attachment" "rw" {
-  policy_arn = aws_iam_policy.tfstate_apply.arn
+  for_each = toset(var.read_write_policies)
+
+  policy_arn = each.key
   role       = aws_iam_role.rw.name
 }

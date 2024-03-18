@@ -5,7 +5,6 @@ variable "name" {
 
 variable "description" {
   type        = string
-  default     = null
   description = "Description of the role being created"
 }
 
@@ -62,10 +61,22 @@ variable "role_path" {
   description = "Path under which to create IAM role."
 }
 
+variable "read_only_policies" {
+  type        = list(string)
+  default     = []
+  description = "List of IAM policy ARNs to attach to the read-only role"
+}
+
 variable "read_only_inline_policies" {
   type        = map(string)
   default     = {}
   description = "Inline policies map with policy name as key and json as value."
+}
+
+variable "read_write_policies" {
+  type        = list(string)
+  default     = []
+  description = "List of IAM policy ARNs to attach to the read-write role"
 }
 
 variable "read_write_inline_policies" {
