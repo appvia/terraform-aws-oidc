@@ -30,5 +30,9 @@ locals {
     lookup(local.common_providers, var.common_provider, null),
   )
 
+  # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref)}"
+
+  account_id      = data.aws_caller_identity.current.account_id
+  tf_state_prefix = format("%s-%s", local.account_id, data.aws_region.current.name)
 }

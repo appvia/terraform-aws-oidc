@@ -75,6 +75,11 @@ resource "aws_iam_role" "ro" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "ro" {
+  policy_arn = aws_iam_policy.tfstate_plan.arn
+  role       = aws_iam_role.ro.name
+}
+
 data "aws_iam_policy_document" "rw" {
   statement {
     actions = [
@@ -149,4 +154,9 @@ resource "aws_iam_role" "rw" {
   tags = merge(var.tags, var.read_write_tags, {
     Name = format("%s-rw", var.name)
   })
+}
+
+resource "aws_iam_role_policy_attachment" "rw" {
+  policy_arn = aws_iam_policy.tfstate_apply.arn
+  role       = aws_iam_role.rw.name
 }
