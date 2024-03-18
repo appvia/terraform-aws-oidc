@@ -58,7 +58,7 @@ resource "aws_iam_role" "ro" {
 
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_only_max_session_duration
-  permissions_boundary  = var.permissions_boundary
+  permissions_boundary  = var.permission_boundary
 
   dynamic "inline_policy" {
     for_each = var.read_only_inline_policies
@@ -137,7 +137,7 @@ resource "aws_iam_role" "rw" {
 
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_write_max_session_duration
-  permissions_boundary  = var.permissions_boundary
+  permissions_boundary  = var.permission_boundary
 
   dynamic "inline_policy" {
     for_each = var.read_write_inline_policies
