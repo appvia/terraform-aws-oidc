@@ -10,12 +10,10 @@ run "github_providers" {
   }
 
   variables {
-    name            = "common"
-    common_provider = "github"
-
-    repositories = [
-      "appvia/something",
-    ]
+    name                = "common"
+    repository          = "appvia/something"
+    common_provider     = "github"
+    permission_boundary = "AdministratorAccess"
   }
 }
 

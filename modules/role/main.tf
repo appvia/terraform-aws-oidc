@@ -14,6 +14,14 @@ data "aws_iam_openid_connect_provider" "this" {
   url = local.selected_provider.url
 }
 
+data "aws_iam_policy" "boundary" {
+  for_each = toset(compact([
+    var.permission_boundary
+  ]))
+
+  name = each.key
+}
+
 data "aws_iam_policy_document" "ro" {
   statement {
     actions = [
@@ -58,7 +66,7 @@ resource "aws_iam_role" "ro" {
 
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_only_max_session_duration
-  permissions_boundary  = var.permission_boundary
+  permissions_boundary  = try(data.aws_iam_policy.boundary[var.permission_boundary].arn, null)
 
   dynamic "inline_policy" {
     for_each = var.read_only_inline_policies
@@ -137,7 +145,7 @@ resource "aws_iam_role" "rw" {
 
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_write_max_session_duration
-  permissions_boundary  = var.permission_boundary
+  permissions_boundary  = try(data.aws_iam_policy.boundary[var.permission_boundary].arn, null)
 
   dynamic "inline_policy" {
     for_each = var.read_write_inline_policies
