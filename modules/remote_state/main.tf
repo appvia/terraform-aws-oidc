@@ -13,7 +13,7 @@ data "terraform_remote_state" "this" {
   backend = "s3"
 
   config = {
-    bucket = format("arn:aws:s3:::%s-tfstate", local.tf_state_prefix)
+    bucket = format("arn:aws:s3:::%s-tfstate", local.tf_state_bucket)
     key    = format("%s.tfstate", var.repository)
 
     assume_role_with_web_identity = {
