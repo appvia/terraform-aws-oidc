@@ -37,6 +37,12 @@ variable "repository" {
   description = "List of repositories to be allowed i nthe OIDC federation mapping"
 }
 
+variable "shared_repositories" {
+  type        = list(string)
+  default     = []
+  description = "List of repositories to provide read access to the remote state"
+}
+
 variable "unprotected_branch" {
   type        = string
   default     = "*"

@@ -24,6 +24,11 @@ run "github_providers" {
     read_write_policy_arns = [
       "arn:aws:iam::aws:policy/AdministratorAccess",
     ]
+
+    shared_repositories = [
+      "appvia/repo-1",
+      "appvia/repo-2",
+    ]
   }
 }
 
