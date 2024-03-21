@@ -9,3 +9,9 @@ output "read_write" {
     arn = aws_iam_role.rw.arn
   }
 }
+
+output "state_reader" {
+  value = {
+    arn = aws_iam_role.sr.arn
+  }
+}

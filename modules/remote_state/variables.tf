@@ -15,7 +15,7 @@ variable "web_identity_token_file" {
 
 variable "account_id" {
   type        = string
-  default = null
+  default     = null
   description = "Account ID where the remote state bucket is located"
 }
 
