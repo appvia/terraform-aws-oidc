@@ -1,8 +1,3 @@
-variable "account_id" {
-  type        = string
-  description = "Account ID where the remote state bucket is located"
-}
-
 variable "repository" {
   type        = string
   description = "The name of the repository to lookup remote state for"
@@ -16,6 +11,12 @@ variable "reader_role_arn" {
 variable "web_identity_token_file" {
   type        = string
   description = "Path to the web identity token file"
+}
+
+variable "account_id" {
+  type        = string
+  default = null
+  description = "Account ID where the remote state bucket is located"
 }
 
 variable "region" {

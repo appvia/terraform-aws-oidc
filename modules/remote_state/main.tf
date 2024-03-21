@@ -1,4 +1,7 @@
 locals {
+  // Use provided account ID or default to current account
+  account = coalesce(var.account_id, data.aws_caller_identity.current.account_id)
+
   // Use provided region or default to the current region
   region = coalesce(var.region, data.aws_region.current.name)
 
