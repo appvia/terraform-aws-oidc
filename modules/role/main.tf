@@ -180,7 +180,7 @@ data "aws_iam_policy_document" "sr" {
 resource "aws_iam_role" "sr" {
   name               = format("%s-sr", var.name)
   path               = var.role_path
-  description        = format("Terraform state reader role for '%s' repo", var.repository)
+  description        = format("Terraform state reader role for '%s' repo", local.repo_name)
   assume_role_policy = data.aws_iam_policy_document.sr.json
 
   tags = merge(var.tags, {

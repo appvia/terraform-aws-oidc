@@ -32,6 +32,9 @@ locals {
     lookup(local.common_providers, var.common_provider, null),
   )
 
+  # Extract just the repository name part of the full path
+  repo_name = element(split("/", var.repository), length(split("/", var.repository)) - 1)
+
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref)}"
 
