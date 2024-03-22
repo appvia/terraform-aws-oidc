@@ -18,6 +18,7 @@ variable "custom_provider" {
   type = object({
     url                    = string
     audiences              = list(string)
+    subject_reader_mapping = string
     subject_branch_mapping = string
     subject_tag_mapping    = string
   })
@@ -41,12 +42,6 @@ variable "shared_repositories" {
   type        = list(string)
   default     = []
   description = "List of repositories to provide read access to the remote state"
-}
-
-variable "unprotected_branch" {
-  type        = string
-  default     = "*"
-  description = "The name (or pattern) of non-protected branches under which the read-only role can be assumed"
 }
 
 variable "protected_branch" {

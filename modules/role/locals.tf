@@ -7,6 +7,7 @@ locals {
         "sts.amazonaws.com",
       ]
 
+      subject_reader_mapping = "repo:{repo}:*"
       subject_branch_mapping = "repo:{repo}:ref:refs/heads/{ref}"
       subject_tag_mapping    = "repo:{repo}:ref:refs/tags/{ref}"
     }
@@ -18,6 +19,7 @@ locals {
         "https://gitlab.com",
       ]
 
+      subject_reader_mapping = "project_path:{repo}:*"
       subject_branch_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
       subject_tag_mapping    = "project_path:{repo}:ref_type:{type}:ref:{ref}"
     }
