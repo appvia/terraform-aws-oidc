@@ -5,3 +5,142 @@
 This module provides two child modules to simplify integrating AWS IAM Roles with OpenID Connect identity provider trusts.
 The [Provider module](modules/provider) is responsible for creating an OpenID Connect provider in IAM, whilst the [Role module](modules/role)
 is responsible for creating AWS IAM Roles with a trust relationship to the AWS IAM OIDC Provider.
+
+## Examples
+
+### OIDC Identity Provider
+
+```hcl
+module "common_provider_example" {
+  source  = "appvia/oidc/aws//modules/provider"
+  version = "0.0.16"
+
+  // List of common OIDC providers to enable
+  common_providers = [
+    "github",
+    "gitlab",
+  ]
+
+  // Per-provider tags to apply to the OIDC provider
+  provider_tags = {
+    github = {
+      Provider = "GitHub Only Tag"
+    }
+
+    gitlab = {
+      Provider = "GitLab Only Tag"
+    }
+  }
+
+  // Tags to apply to all providers
+  tags = {
+    Name = "Example Common Provider"
+  }
+}
+
+module "custom_provider_example" {
+  source  = "appvia/oidc/aws//modules/provider"
+  version = "0.0.16"
+
+  // Custom provider configuration
+  custom_providers = {
+    gitlab = {
+      // Friendly name of the provider
+      name = "GitLab"
+
+      // Root URL of the OpenID Connect identity provider
+      url = "https://gitlab.example.org"
+
+      // Client ID (audience)
+      client_id_list = [
+        "https://gitlab.example.org",
+      ]
+
+      // List of certificate thumbprints for the provider.
+      // If these are not specified, the module will attempt
+      // to look up the current thumbprint automatically.
+      thumbprint_list = [
+        "92bed42098f508e91f47f321f6607e4b",
+      ]
+    }
+  }
+
+  // Tags to provide to all providers
+  tags = {
+    Name = "Example Custom Provider"
+  }
+}
+```
+
+### OIDC Trusted Role
+
+```hcl
+module "common_provider_example" {
+  source  = "appvia/oidc/aws//modules/role"
+  version = "0.0.16"
+
+  // Basic role details
+  name        = "test-common-role"
+  description = "Creates a role using the GitHub OIDC provider"
+
+  // Name of the common OIDC provider to use
+  common_provider = "github"
+
+  // Relative path to the repository for the given provider
+  repository = "appvia/something"
+
+  // Set the permission boundary for both the read-only and read-write role
+  permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+  // List of policy ARNs to attach to the read-only role
+  read_only_policy_arns = [
+    "arn:aws:iam::aws:policy/ReadOnlyAccess",
+  ]
+
+  // List of policy ARNs to attach to the read-write role
+  read_write_policy_arns = [
+    "arn:aws:iam::aws:policy/AdministratorAccess",
+  ]
+
+  // List of additional repositories which will be able to read the remote
+  // terraform state, created by this role.
+  shared_repositories = [
+    "appvia/repo-1",
+    "appvia/repo-2",
+  ]
+
+  // Tags to apply to the role
+  tags = {
+    Name = "Example Common Provider"
+  }
+}
+```
+
+### Remote State Reader
+
+```hcl
+module "basic" {
+  source  = "appvia/oidc/aws//modules/role"
+  version = "0.0.16"
+
+  // ID of the destination AWS account from which remote
+  // state is to be read from.
+  account_id = "0123456789"
+
+  // Name of the region of the destination AWS account where
+  // resource have been deployed to.
+  region = "eu-west-2"
+
+  // The path of the repository which produced the remote
+  // state being read.
+  repository = "appvia/repo-1"
+
+  // ARN of the role to be assumed with the permissions to read
+  // the remote state file.
+  reader_role_arn = "arn:aws:iam::0123456789:role/test-common-role"
+
+  // Path to the identity token file containing the credentials needed
+  // to assume the role.
+  web_identity_token_file = "/tmp/web_identity_token_file"
+}
+```
