@@ -19,7 +19,7 @@ jobs:
     uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
     name: Remote State Module
     with:
-      working-directory: modules/remote-state
+      working-directory: modules/remote_state
 
   provider-validation:
     uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
