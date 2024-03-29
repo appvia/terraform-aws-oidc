@@ -4,9 +4,11 @@ locals {
 
   // Use provided region or default to the current region
   region = coalesce(var.region, data.aws_region.current.name)
+}
 
+locals {
   // Terraform state bucket name
-  tf_state_bucket = format("%s-%s", var.account_id, local.region)
+  tf_state_bucket = format("%s-%s", local.account, local.region)
 }
 
 data "terraform_remote_state" "this" {
