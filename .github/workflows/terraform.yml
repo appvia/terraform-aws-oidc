@@ -9,10 +9,20 @@ on:
       - main
 
 jobs:
-  module-validation:
+  role-validation:
     uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
-    name: Module Validation
-    secrets:
-      infracost-api-key: ${{ secrets.ORG_INFRACOST_API_KEY }}
+    name: OIDC Role Module
     with:
-      working-directory: .
+      working-directory: modules/role
+
+  remote-state-validation:
+    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
+    name: Remote State Module
+    with:
+      working-directory: modules/remote_state
+
+  provider-validation:
+    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
+    name: Provider Module
+    with:
+      working-directory: modules/provider

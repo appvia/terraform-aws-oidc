@@ -24,6 +24,8 @@ locals {
       subject_tag_mapping    = "project_path:{repo}:ref_type:{type}:ref:{ref}"
     }
   }
+  # The full ARN of the permission boundary to attach to the role
+  permission_boundary_arn = format("arn:aws:iam::%s:policy/%s", data.aws_caller_identity.current.account_id, var.permission_boundary)
 }
 
 locals {

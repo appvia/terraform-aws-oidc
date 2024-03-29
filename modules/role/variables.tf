@@ -104,14 +104,12 @@ variable "force_detach_policies" {
   description = "Flag to force detachment of policies attached to the IAM role."
 }
 
-variable "permission_boundary_arn" {
+variable "permission_boundary" {
   type        = string
-  default     = null
-  description = "The ARN of the policy that is used to set the permissions boundary for the IAM role"
+  description = "The name of the policy that is used to set the permissions boundary for the IAM role"
 }
 
 variable "tags" {
   type        = map(string)
-  default     = {}
   description = "Tags to apply resoures created by this module"
 }
