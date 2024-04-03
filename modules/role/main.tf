@@ -1,3 +1,13 @@
+
+locals {
+  ## The name of the iam role to create for the readonly 
+  readonly_role_name = format("%s-ro", var.name)
+  ## The name of the iam role to create for the readwrite
+  readwrite_role_name = var.name
+  ## The name of the iam role to create for the state reader 
+  state_reader_role_name = format("%s-sr", var.name)
+}
+
 data "aws_iam_openid_connect_provider" "this" {
   url = local.selected_provider.url
 }
@@ -36,15 +46,16 @@ data "aws_iam_policy_document" "ro" {
   }
 }
 
+## Provision the read only role
 resource "aws_iam_role" "ro" {
-  name               = format("%s-ro", var.name)
-  path               = var.role_path
-  description        = var.description
-  assume_role_policy = data.aws_iam_policy_document.ro.json
-
+  assume_role_policy    = data.aws_iam_policy_document.ro.json
+  description           = var.description
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_only_max_session_duration
+  name                  = local.readonly_role_name
+  path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
+  tags                  = merge(var.tags, { Name = local.readonly_role_name })
 
   dynamic "inline_policy" {
     for_each = var.read_only_inline_policies
@@ -54,12 +65,9 @@ resource "aws_iam_role" "ro" {
       policy = inline_policy.value
     }
   }
-
-  tags = merge(var.tags, {
-    Name = format("%s-ro", var.name)
-  })
 }
 
+## Attach the read only policies to the read only role
 resource "aws_iam_role_policy_attachment" "ro" {
   for_each = toset(var.read_only_policy_arns)
 
@@ -112,14 +120,14 @@ data "aws_iam_policy_document" "rw" {
 }
 
 resource "aws_iam_role" "rw" {
-  name               = format("%s-rw", var.name)
-  path               = var.role_path
-  description        = var.description
-  assume_role_policy = data.aws_iam_policy_document.rw.json
-
+  assume_role_policy    = data.aws_iam_policy_document.rw.json
+  description           = var.description
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_write_max_session_duration
+  name                  = local.readwrite_role_name
+  path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
+  tags                  = merge(var.tags, { Name = local.readwrite_role_name })
 
   dynamic "inline_policy" {
     for_each = var.read_write_inline_policies
@@ -129,10 +137,6 @@ resource "aws_iam_role" "rw" {
       policy = inline_policy.value
     }
   }
-
-  tags = merge(var.tags, {
-    Name = format("%s-rw", var.name)
-  })
 }
 
 resource "aws_iam_role_policy_attachment" "rw" {
@@ -178,12 +182,9 @@ data "aws_iam_policy_document" "sr" {
 }
 
 resource "aws_iam_role" "sr" {
-  name               = format("%s-sr", var.name)
-  path               = var.role_path
-  description        = format("Terraform state reader role for '%s' repo", local.repo_name)
   assume_role_policy = data.aws_iam_policy_document.sr.json
-
-  tags = merge(var.tags, {
-    Name = format("%s-sr", var.name)
-  })
+  description        = format("Terraform state reader role for '%s' repo", local.repo_name)
+  name               = local.state_reader_role_name
+  path               = var.role_path
+  tags               = merge(var.tags, { Name = local.state_reader_role_name })
 }
