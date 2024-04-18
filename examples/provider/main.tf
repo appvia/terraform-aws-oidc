@@ -1,6 +1,5 @@
 module "common_provider_example" {
-  source  = "appvia/oidc/aws//modules/provider"
-  version = "0.0.16"
+  source = "../../modules/provider"
 
   // List of common OIDC providers to enable
   common_providers = [
@@ -26,8 +25,7 @@ module "common_provider_example" {
 }
 
 module "custom_provider_example" {
-  source  = "appvia/oidc/aws//modules/provider"
-  version = "0.0.16"
+  source = "../../modules/provider"
 
   // Custom provider configuration
   custom_providers = {

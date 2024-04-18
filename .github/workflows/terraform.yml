@@ -8,21 +8,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  role-validation:
+  module-validation:
     uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
-    name: OIDC Role Module
+    name: Module Validation
     with:
-      working-directory: modules/role
-
-  remote-state-validation:
-    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
-    name: Remote State Module
-    with:
-      working-directory: modules/remote_state
-
-  provider-validation:
-    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@main
-    name: Provider Module
-    with:
-      working-directory: modules/provider
+      working-directory: .

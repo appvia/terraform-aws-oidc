@@ -14,7 +14,7 @@ No providers.
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_common_provider_example"></a> [common\_provider\_example](#module\_common\_provider\_example) | appvia/oidc/aws//modules/role | 0.0.16 |
+| <a name="module_common_provider_example"></a> [common\_provider\_example](#module\_common\_provider\_example) | ../../modules/role | n/a |
 
 ## Resources
 
