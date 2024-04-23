@@ -52,6 +52,7 @@ resource "aws_iam_policy" "tfstate_plan" {
   name        = format("%s-tfstate-plan", var.name)
   description = "Policy allowing read access to the Terraform state bucket and DynamoDB table for the ${var.name} role"
   policy      = data.aws_iam_policy_document.tfstate_plan.json
+  tags        = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "tfstate_plan" {
@@ -83,6 +84,7 @@ resource "aws_iam_policy" "tfstate_apply" {
   name        = format("%s-tfstate-apply", var.name)
   description = "Policy allowing write access to the Terraform state bucket and DynamoDB table for the ${var.name} role"
   policy      = data.aws_iam_policy_document.tfstate_apply.json
+  tags        = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "tfstate_apply" {
@@ -101,6 +103,7 @@ resource "aws_iam_policy" "tfstate_remote" {
   name        = format("%s-tfstate-remote", var.name)
   description = "Policy allowing read access to the Terraform state bucket for the ${var.name} role"
   policy      = data.aws_iam_policy_document.tfstate_remote.json
+  tags        = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "tfstate_remote" {
