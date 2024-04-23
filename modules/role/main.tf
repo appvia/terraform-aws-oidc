@@ -8,10 +8,7 @@ locals {
   state_reader_role_name = format("%s-sr", var.name)
 }
 
-data "aws_iam_openid_connect_provider" "this" {
-  url = local.selected_provider.url
-}
-
+## Craft a assume role policy document
 data "aws_iam_policy_document" "ro" {
   statement {
     actions = [
@@ -75,6 +72,7 @@ resource "aws_iam_role_policy_attachment" "ro" {
   role       = aws_iam_role.ro.name
 }
 
+## Craft the read write policy document
 data "aws_iam_policy_document" "rw" {
   statement {
     actions = [
@@ -119,6 +117,7 @@ data "aws_iam_policy_document" "rw" {
   }
 }
 
+## Provision the read write role 
 resource "aws_iam_role" "rw" {
   assume_role_policy    = data.aws_iam_policy_document.rw.json
   description           = var.description
@@ -139,6 +138,7 @@ resource "aws_iam_role" "rw" {
   }
 }
 
+## Attach the read write policies to the read write role
 resource "aws_iam_role_policy_attachment" "rw" {
   for_each = toset(var.read_write_policy_arns)
 
@@ -146,6 +146,7 @@ resource "aws_iam_role_policy_attachment" "rw" {
   role       = aws_iam_role.rw.name
 }
 
+## Craft the state reader policy
 data "aws_iam_policy_document" "sr" {
   statement {
     actions = [
@@ -181,6 +182,7 @@ data "aws_iam_policy_document" "sr" {
   }
 }
 
+## Provision the state reader role
 resource "aws_iam_role" "sr" {
   assume_role_policy = data.aws_iam_policy_document.sr.json
   description        = format("Terraform state reader role for '%s' repo", local.repo_name)
