@@ -1,4 +1,5 @@
-// Base policy shared by all roles
+
+## Craft a IMA policy for all terraform roles
 data "aws_iam_policy_document" "base" {
   statement {
     actions = [
@@ -24,7 +25,7 @@ data "aws_iam_policy_document" "base" {
   }
 }
 
-// DynamoDB policy shared by terraform roles
+## Craft a IAM policy for access to the DynamoDB table 
 data "aws_iam_policy_document" "dynamo" {
   statement {
     actions = [
@@ -40,27 +41,7 @@ data "aws_iam_policy_document" "dynamo" {
   }
 }
 
-// Policy for terraform plan role
-data "aws_iam_policy_document" "tfstate_plan" {
-  source_policy_documents = [
-    data.aws_iam_policy_document.base.json,
-    data.aws_iam_policy_document.dynamo.json,
-  ]
-}
-
-resource "aws_iam_policy" "tfstate_plan" {
-  name        = format("%s-tfstate-plan", var.name)
-  description = "Policy allowing read access to the Terraform state bucket and DynamoDB table for the ${var.name} role"
-  policy      = data.aws_iam_policy_document.tfstate_plan.json
-  tags        = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "tfstate_plan" {
-  policy_arn = aws_iam_policy.tfstate_plan.arn
-  role       = aws_iam_role.ro.name
-}
-
-// Policy for terraform apply role
+## Craft an IAM policy with the necessary permissions for terraform apply 
 data "aws_iam_policy_document" "tfstate_apply" {
   source_policy_documents = [
     data.aws_iam_policy_document.base.json,
@@ -80,33 +61,18 @@ data "aws_iam_policy_document" "tfstate_apply" {
   }
 }
 
-resource "aws_iam_policy" "tfstate_apply" {
-  name        = format("%s-tfstate-apply", var.name)
-  description = "Policy allowing write access to the Terraform state bucket and DynamoDB table for the ${var.name} role"
-  policy      = data.aws_iam_policy_document.tfstate_apply.json
-  tags        = var.tags
+
+## Craft an IAM policy with the necessary permissions for terraform plan 
+data "aws_iam_policy_document" "tfstate_plan" {
+  source_policy_documents = [
+    data.aws_iam_policy_document.base.json,
+    data.aws_iam_policy_document.dynamo.json,
+  ]
 }
 
-resource "aws_iam_role_policy_attachment" "tfstate_apply" {
-  policy_arn = aws_iam_policy.tfstate_apply.arn
-  role       = aws_iam_role.rw.name
-}
-
-// Policy for terraform remote state reading
+## Craft an IAM policy with the necessary permissions for terraform remote state
 data "aws_iam_policy_document" "tfstate_remote" {
   source_policy_documents = [
     data.aws_iam_policy_document.base.json,
   ]
-}
-
-resource "aws_iam_policy" "tfstate_remote" {
-  name        = format("%s-tfstate-remote", var.name)
-  description = "Policy allowing read access to the Terraform state bucket for the ${var.name} role"
-  policy      = data.aws_iam_policy_document.tfstate_remote.json
-  tags        = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "tfstate_remote" {
-  policy_arn = aws_iam_policy.tfstate_remote.arn
-  role       = aws_iam_role.sr.name
 }
