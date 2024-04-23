@@ -10,7 +10,7 @@ variable "description" {
 
 variable "common_provider" {
   type        = string
-  default     = ""
+  default     = "github"
   description = "The name of a common OIDC provider to be used as the trust for the role"
 }
 

@@ -1,6 +1,5 @@
 module "basic" {
-  source  = "appvia/oidc/aws//modules/role"
-  version = "0.0.16"
+  source = "../../modules/remote_state"
 
   // ID of the destination AWS account from which remote
   // state is to be read from.
