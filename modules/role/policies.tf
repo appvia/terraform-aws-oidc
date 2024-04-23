@@ -1,5 +1,5 @@
 
-## Craft a IMA policy for all terraform roles
+## Craft a IAM policy for all terraform roles
 data "aws_iam_policy_document" "base" {
   statement {
     actions = [
