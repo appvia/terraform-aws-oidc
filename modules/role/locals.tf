@@ -1,5 +1,8 @@
 
 locals {
+  # The current account ID 
+  account_id = data.aws_caller_identity.current.account_id
+  ## The common OIDC providers to use 
   common_providers = {
     github = {
       url = "https://token.actions.githubusercontent.com"
@@ -25,8 +28,10 @@ locals {
       subject_tag_mapping    = "project_path:{repo}:ref_type:{type}:ref:{ref}"
     }
   }
+  # The devired permission_boundary arn 
+  permission_boundary_by_name = var.permission_boundary != null ? format("arn:aws:iam::%s:policy/%s", local.account_id, var.permission_boundary) : null
   # The full ARN of the permission boundary to attach to the role
-  permission_boundary_arn = format("arn:aws:iam::%s:policy/%s", data.aws_caller_identity.current.account_id, var.permission_boundary)
+  permission_boundary_arn = var.permission_boundary_arn == null ? local.permission_boundary_by_name : var.permission_boundary_arn
 }
 
 locals {
@@ -40,7 +45,6 @@ locals {
 
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref)}"
-
-  account_id      = data.aws_caller_identity.current.account_id
+  # The prefix for the terraform state key in the S3 bucket
   tf_state_prefix = format("%s-%s", local.account_id, data.aws_region.current.name)
 }

@@ -8,7 +8,7 @@ locals {
   state_reader_role_name = format("%s-sr", var.name)
 }
 
-## Craft a assume role policy document
+## Craft a trust policy for the readonly role
 data "aws_iam_policy_document" "ro" {
   statement {
     actions = [
@@ -54,6 +54,11 @@ resource "aws_iam_role" "ro" {
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readonly_role_name })
 
+  inline_policy {
+    name   = "tfstate_plan"
+    policy = data.aws_iam_policy_document.tfstate_plan.json
+  }
+
   dynamic "inline_policy" {
     for_each = var.read_only_inline_policies
 
@@ -72,7 +77,7 @@ resource "aws_iam_role_policy_attachment" "ro" {
   role       = aws_iam_role.ro.name
 }
 
-## Craft the read write policy document
+## Craft the trust policy for the read write role
 data "aws_iam_policy_document" "rw" {
   statement {
     actions = [
@@ -128,6 +133,11 @@ resource "aws_iam_role" "rw" {
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readwrite_role_name })
 
+  inline_policy {
+    name   = "tfstate_apply"
+    policy = data.aws_iam_policy_document.tfstate_apply.json
+  }
+
   dynamic "inline_policy" {
     for_each = var.read_write_inline_policies
 
@@ -146,7 +156,7 @@ resource "aws_iam_role_policy_attachment" "rw" {
   role       = aws_iam_role.rw.name
 }
 
-## Craft the state reader policy
+## Craft the trust policy for the state reader role
 data "aws_iam_policy_document" "sr" {
   statement {
     actions = [
@@ -189,4 +199,9 @@ resource "aws_iam_role" "sr" {
   name               = local.state_reader_role_name
   path               = var.role_path
   tags               = merge(var.tags, { Name = local.state_reader_role_name })
+
+  inline_policy {
+    name   = "tfstate_remote"
+    policy = data.aws_iam_policy_document.tfstate_remote.json
+  }
 }

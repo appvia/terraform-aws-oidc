@@ -107,6 +107,13 @@ variable "force_detach_policies" {
 variable "permission_boundary" {
   type        = string
   description = "The name of the policy that is used to set the permissions boundary for the IAM role"
+  default     = null
+}
+
+variable "permission_boundary_arn" {
+  type        = string
+  description = "The full ARN of the permission boundary to attach to the role"
+  default     = null
 }
 
 variable "tags" {

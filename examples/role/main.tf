@@ -10,7 +10,7 @@ module "common_provider_example" {
   // Relative path to the repository for the given provider
   repository = "appvia/something"
   // Set the permission boundary for both the read-only and read-write role
-  permission_boundary = "AdministratorAccess"
+  permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
   // List of policy ARNs to attach to the read-only role
   read_only_policy_arns = [
     "arn:aws:iam::aws:policy/ReadOnlyAccess",
