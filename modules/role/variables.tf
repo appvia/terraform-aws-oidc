@@ -8,6 +8,12 @@ variable "description" {
   description = "Description of the role being created"
 }
 
+variable "region" {
+  type        = string
+  description = "The region in which the role will be used (defaulting to the provider region)"
+  default     = null
+}
+
 variable "common_provider" {
   type        = string
   default     = "github"

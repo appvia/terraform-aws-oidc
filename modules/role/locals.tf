@@ -32,6 +32,8 @@ locals {
   permission_boundary_by_name = var.permission_boundary != null ? format("arn:aws:iam::%s:policy/%s", local.account_id, var.permission_boundary) : null
   # The full ARN of the permission boundary to attach to the role
   permission_boundary_arn = var.permission_boundary_arn == null ? local.permission_boundary_by_name : var.permission_boundary_arn
+  # The region where the iam role will be used 
+  region = var.region != null ? var.region : data.aws_region.current.name
 }
 
 locals {
@@ -46,5 +48,5 @@ locals {
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref)}"
   # The prefix for the terraform state key in the S3 bucket
-  tf_state_prefix = format("%s-%s", local.account_id, data.aws_region.current.name)
+  tf_state_prefix = format("%s-%s", local.account_id, local.region)
 }
