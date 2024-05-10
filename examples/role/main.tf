@@ -19,6 +19,40 @@ module "common_provider_example" {
   read_write_policy_arns = [
     "arn:aws:iam::aws:policy/AdministratorAccess",
   ]
+
+  read_only_inline_policies = {
+    "additional" = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:ListBucket",
+          ]
+          Resource = "*"
+        },
+      ]
+    })
+  }
+
+  read_write_inline_policies = {
+    "additional" = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:ListBucket",
+          ]
+          Resource = "*"
+        },
+      ]
+    })
+  }
+
   // List of additional repositories which will be able to read the remote
   // terraform state, created by this role.
   shared_repositories = [
