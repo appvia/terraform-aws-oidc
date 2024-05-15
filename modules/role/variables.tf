@@ -39,9 +39,15 @@ variable "additional_audiences" {
   description = "Additional audiences to be allowed in the OIDC federation mapping"
 }
 
+variable "enable_branch_suffix_on_statefile" {
+  type        = bool
+  default     = false
+  description = "Add the protected branch as a suffix on the statefile name, e.g. <repo>-<branch>.tfstate"
+}
+
 variable "repository" {
   type        = string
-  description = "List of repositories to be allowed i nthe OIDC federation mapping"
+  description = "List of repositories to be allowed in the OIDC federation mapping"
 }
 
 variable "shared_repositories" {

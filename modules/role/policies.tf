@@ -20,7 +20,7 @@ data "aws_iam_policy_document" "base" {
     ]
 
     resources = [
-      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, local.repo_name)
+      format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_prefix, local.repo_name, local.tf_state_suffix),
     ]
   }
 }
@@ -56,7 +56,7 @@ data "aws_iam_policy_document" "tfstate_apply" {
     ]
 
     resources = [
-      format("arn:aws:s3:::%s-tfstate/%s.tfstate", local.tf_state_prefix, local.repo_name)
+      format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_prefix, local.repo_name, local.tf_state_suffix)
     ]
   }
 }

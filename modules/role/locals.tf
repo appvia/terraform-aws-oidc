@@ -49,4 +49,5 @@ locals {
   template_keys_regex = "{(repo|type|ref)}"
   # The prefix for the terraform state key in the S3 bucket
   tf_state_prefix = format("%s-%s", local.account_id, local.region)
+  tf_state_suffix = var.enable_branch_suffix_on_statefile ? format("-%s", var.protected_branch) : ""
 }
