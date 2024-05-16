@@ -26,6 +26,7 @@ variable "custom_provider" {
     audiences              = list(string)
     subject_reader_mapping = string
     subject_branch_mapping = string
+    subject_env_mapping    = string
     subject_tag_mapping    = string
   })
 
@@ -39,10 +40,10 @@ variable "additional_audiences" {
   description = "Additional audiences to be allowed in the OIDC federation mapping"
 }
 
-variable "enable_branch_suffix_on_statefile" {
-  type        = bool
-  default     = false
-  description = "Add the protected branch as a suffix on the statefile name, e.g. <repo>-<branch>.tfstate"
+variable "tf_state_suffix" {
+  type        = string
+  default     = ""
+  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate"
 }
 
 variable "repository" {
@@ -56,16 +57,20 @@ variable "shared_repositories" {
   description = "List of repositories to provide read access to the remote state"
 }
 
-variable "protected_branch" {
-  type        = string
-  default     = "main"
-  description = "The name of the protected branch under which the read-write role can be assumed"
-}
+variable "protected_by" {
+  type = object({
+    branch      = optional(string)
+    environment = optional(string)
+    tag         = optional(string)
+  })
 
-variable "protected_tag" {
-  type        = string
-  default     = "*"
-  description = "The name of the protected tag under which the read-write role can be assume"
+  default = {
+    branch      = "main"
+    environment = "production"
+    tag         = "*"
+  }
+
+  description = "The branch, environment and/or tag to protect the role against"
 }
 
 variable "role_path" {

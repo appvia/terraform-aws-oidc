@@ -13,6 +13,7 @@ locals {
 
       subject_reader_mapping = "repo:{repo}:*"
       subject_branch_mapping = "repo:{repo}:ref:refs/heads/{ref}"
+      subject_env_mapping    = "repo:{repo}:environment:{env}"
       subject_tag_mapping    = "repo:{repo}:ref:refs/tags/{ref}"
     }
 
@@ -37,17 +38,15 @@ locals {
 }
 
 locals {
-  selected_provider = coalesce(
-    var.custom_provider,
-    lookup(local.common_providers, var.common_provider, null),
-  )
+  common_provider   = lookup(local.common_providers, var.common_provider, null)
+  selected_provider = var.custom_provider != null ? var.custom_provider : local.common_provider
 
   # Extract just the repository name part of the full path
   repo_name = element(split("/", var.repository), length(split("/", var.repository)) - 1)
 
   # Keys to search for in the subject mapping template
-  template_keys_regex = "{(repo|type|ref)}"
+  template_keys_regex = "{(repo|type|ref|env)}"
   # The prefix for the terraform state key in the S3 bucket
   tf_state_prefix = format("%s-%s", local.account_id, local.region)
-  tf_state_suffix = var.enable_branch_suffix_on_statefile ? format("-%s", var.protected_branch) : ""
+  tf_state_suffix = var.tf_state_suffix != "" ? format("-%s", var.tf_state_suffix) : ""
 }

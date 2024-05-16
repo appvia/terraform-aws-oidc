@@ -131,15 +131,13 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_additional_audiences"></a> [additional\_audiences](#input\_additional\_audiences) | Additional audiences to be allowed in the OIDC federation mapping | `list(string)` | `[]` | no |
 | <a name="input_common_provider"></a> [common\_provider](#input\_common\_provider) | The name of a common OIDC provider to be used as the trust for the role | `string` | `"github"` | no |
-| <a name="input_custom_provider"></a> [custom\_provider](#input\_custom\_provider) | An object representing an `aws_iam_openid_connect_provider` resource | <pre>object({<br>    url                    = string<br>    audiences              = list(string)<br>    subject_reader_mapping = string<br>    subject_branch_mapping = string<br>    subject_tag_mapping    = string<br>  })</pre> | `null` | no |
+| <a name="input_custom_provider"></a> [custom\_provider](#input\_custom\_provider) | An object representing an `aws_iam_openid_connect_provider` resource | <pre>object({<br>    url                    = string<br>    audiences              = list(string)<br>    subject_reader_mapping = string<br>    subject_branch_mapping = string<br>    subject_env_mapping    = string<br>    subject_tag_mapping    = string<br>  })</pre> | `null` | no |
 | <a name="input_description"></a> [description](#input\_description) | Description of the role being created | `string` | n/a | yes |
-| <a name="input_enable_branch_suffix_on_statefile"></a> [enable\_branch\_suffix\_on\_statefile](#input\_enable\_branch\_suffix\_on\_statefile) | Add the protected branch as a suffix on the statefile name, e.g. <repo>-<branch>.tfstate | `bool` | `false` | no |
 | <a name="input_force_detach_policies"></a> [force\_detach\_policies](#input\_force\_detach\_policies) | Flag to force detachment of policies attached to the IAM role. | `bool` | `null` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the role to create | `string` | n/a | yes |
 | <a name="input_permission_boundary"></a> [permission\_boundary](#input\_permission\_boundary) | The name of the policy that is used to set the permissions boundary for the IAM role | `string` | `null` | no |
 | <a name="input_permission_boundary_arn"></a> [permission\_boundary\_arn](#input\_permission\_boundary\_arn) | The full ARN of the permission boundary to attach to the role | `string` | `null` | no |
-| <a name="input_protected_branch"></a> [protected\_branch](#input\_protected\_branch) | The name of the protected branch under which the read-write role can be assumed | `string` | `"main"` | no |
-| <a name="input_protected_tag"></a> [protected\_tag](#input\_protected\_tag) | The name of the protected tag under which the read-write role can be assume | `string` | `"*"` | no |
+| <a name="input_protected_by"></a> [protected\_by](#input\_protected\_by) | The branch, environment and/or tag to protect the role against | <pre>object({<br>    branch      = optional(string)<br>    environment = optional(string)<br>    tag         = optional(string)<br>  })</pre> | <pre>{<br>  "branch": "main",<br>  "environment": "production",<br>  "tag": "*"<br>}</pre> | no |
 | <a name="input_read_only_inline_policies"></a> [read\_only\_inline\_policies](#input\_read\_only\_inline\_policies) | Inline policies map with policy name as key and json as value. | `map(string)` | `{}` | no |
 | <a name="input_read_only_max_session_duration"></a> [read\_only\_max\_session\_duration](#input\_read\_only\_max\_session\_duration) | The maximum session duration (in seconds) that you want to set for the specified role | `number` | `null` | no |
 | <a name="input_read_only_policy_arns"></a> [read\_only\_policy\_arns](#input\_read\_only\_policy\_arns) | List of IAM policy ARNs to attach to the read-only role | `list(string)` | `[]` | no |
@@ -151,6 +149,7 @@ No modules.
 | <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `null` | no |
 | <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the remote state | `list(string)` | `[]` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resoures created by this module | `map(string)` | n/a | yes |
+| <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform statefile, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
 
 ## Outputs
 
