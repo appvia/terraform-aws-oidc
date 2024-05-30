@@ -43,14 +43,14 @@ init:
 
 security: 
 	@echo "--> Running Security checks"
-	@tfsec .
+	@trivy config .
 	$(MAKE) security-examples
 
 security-examples:
 	@echo "--> Running Security checks on examples"
 	@find examples -type d -mindepth 1 -maxdepth 1 | while read -r dir; do \
 		echo "--> Validating $$dir"; \
-		tfsec $$dir; \
+		trivy config $$dir; \
 	done
 
 validate-all:
