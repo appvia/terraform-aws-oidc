@@ -1,23 +1,23 @@
 variable "name" {
   type        = string
-  description = "Name of the role to create"
+  description = "Name of the role to create."
 }
 
 variable "description" {
   type        = string
-  description = "Description of the role being created"
+  description = "Description of the role being created."
 }
 
 variable "region" {
   type        = string
-  description = "The region in which the role will be used (defaulting to the provider region)"
+  description = "The region in which the role will be used (defaulting to the provider region)."
   default     = null
 }
 
 variable "common_provider" {
   type        = string
   default     = "github"
-  description = "The name of a common OIDC provider to be used as the trust for the role"
+  description = "The name of a common OIDC provider to be used as the trust for the role."
 }
 
 variable "custom_provider" {
@@ -31,30 +31,30 @@ variable "custom_provider" {
   })
 
   default     = null
-  description = "An object representing an `aws_iam_openid_connect_provider` resource"
+  description = "An object representing an `aws_iam_openid_connect_provider` resource."
 }
 
 variable "additional_audiences" {
   type        = list(string)
   default     = []
-  description = "Additional audiences to be allowed in the OIDC federation mapping"
+  description = "Additional audiences to be allowed in the OIDC federation mapping."
 }
 
 variable "tf_state_suffix" {
   type        = string
   default     = ""
-  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate"
+  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate."
 }
 
 variable "repository" {
   type        = string
-  description = "List of repositories to be allowed in the OIDC federation mapping"
+  description = "List of repositories to be allowed in the OIDC federation mapping."
 }
 
 variable "shared_repositories" {
   type        = list(string)
   default     = []
-  description = "List of repositories to provide read access to the remote state"
+  description = "List of repositories to provide read access to the remote state."
 }
 
 variable "protected_by" {
@@ -70,7 +70,7 @@ variable "protected_by" {
     tag         = "*"
   }
 
-  description = "The branch, environment and/or tag to protect the role against"
+  description = "The branch, environment and/or tag to protect the role against."
 }
 
 variable "role_path" {
@@ -94,7 +94,7 @@ variable "read_only_inline_policies" {
 variable "read_write_policy_arns" {
   type        = list(string)
   default     = []
-  description = "List of IAM policy ARNs to attach to the read-write role"
+  description = "List of IAM policy ARNs to attach to the read-write role."
 }
 
 variable "read_write_inline_policies" {
@@ -106,13 +106,13 @@ variable "read_write_inline_policies" {
 variable "read_only_max_session_duration" {
   type        = number
   default     = null
-  description = "The maximum session duration (in seconds) that you want to set for the specified role"
+  description = "The maximum session duration (in seconds) that you want to set for the specified role."
 }
 
 variable "read_write_max_session_duration" {
   type        = number
   default     = null
-  description = "The maximum session duration (in seconds) that you want to set for the specified role"
+  description = "The maximum session duration (in seconds) that you want to set for the specified role."
 }
 
 variable "force_detach_policies" {
@@ -123,17 +123,17 @@ variable "force_detach_policies" {
 
 variable "permission_boundary" {
   type        = string
-  description = "The name of the policy that is used to set the permissions boundary for the IAM role"
+  description = "The name of the policy that is used to set the permissions boundary for the IAM role."
   default     = null
 }
 
 variable "permission_boundary_arn" {
   type        = string
-  description = "The full ARN of the permission boundary to attach to the role"
+  description = "The full ARN of the permission boundary to attach to the role."
   default     = null
 }
 
 variable "tags" {
   type        = map(string)
-  description = "Tags to apply resoures created by this module"
+  description = "Tags to apply resoures created by this module."
 }
