@@ -1,7 +1,7 @@
 variable "common_providers" {
   type        = list(string)
   default     = []
-  description = "List of common well-known providers to enable, such as github, gitlab"
+  description = "List of common well-known providers to enable, such as github, gitlab."
 }
 
 variable "custom_providers" {
@@ -13,17 +13,17 @@ variable "custom_providers" {
     lookup_thumbprint = optional(bool, true)
   }))
   default     = {}
-  description = "Map of custom provider configurations"
+  description = "Map of custom provider configurations."
 }
 
 variable "tags" {
   type        = map(string)
   default     = {}
-  description = "Map of tags to apply to all resources"
+  description = "Map of tags to apply to all resources."
 }
 
 variable "provider_tags" {
   type        = map(map(string))
   default     = {}
-  description = "Nested map of tags to apply to specific providers. Top level keys should match provider names"
+  description = "Nested map of tags to apply to specific providers. Top level keys should match provider names."
 }
