@@ -1,3 +1,9 @@
+locals {
+  workspace_name  = var.workspace_name
+  workspace_uuid  = var.workspace_uuid
+  repository_uuid = var.repository_uuid
+
+}
 
 locals {
   # The current account ID 
@@ -27,6 +33,19 @@ locals {
       subject_reader_mapping = "project_path:{repo}:*"
       subject_branch_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
       subject_tag_mapping    = "project_path:{repo}:ref_type:{type}:ref:{ref}"
+    }
+
+    bitbucket = {
+      url = local.workspace_name != null ? "https://api.bitbucket.org/2.0/workspaces/${local.workspace_name}/pipelines-config/identity/oidc" : ""
+
+      audiences = local.workspace_uuid != null ? [
+        "ari:cloud:bitbucket::workspace/${local.workspace_uuid}",
+      ] : []
+
+      subject_reader_mapping = local.repository_uuid != null ? "${local.repository_uuid}:*" : ""
+      subject_branch_mapping = local.repository_uuid != null ? "${local.repository_uuid}:*" : ""
+      subject_env_mapping    = ""
+      subject_tag_mapping    = ""
     }
   }
   # The devired permission_boundary arn 

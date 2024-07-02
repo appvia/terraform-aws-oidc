@@ -27,3 +27,22 @@ variable "provider_tags" {
   default     = {}
   description = "Nested map of tags to apply to specific providers. Top level keys should match provider names"
 }
+
+// bitbucket
+
+variable "workspace_uuid" {
+  description = "Workspace UUID. You can get it in the repository settings in the OpenID connect provider. Don't include the brackets and make sure it is lower cased."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = length(var.workspace_uuid) == 0 || can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.workspace_uuid))
+    error_message = "The UUID format is not matching. Make sure it is lowercased and brackets are not included. Here's a valid example: 8a1f1c70-cbc0-452c-81ce-07534945e18b."
+  }
+}
+
+variable "workspace_name" {
+  description = "The name of the workspace."
+  type        = string
+  default     = ""
+}
