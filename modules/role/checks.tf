@@ -32,18 +32,6 @@ check "protected_by_config" {
   }
 }
 
-check "policy_config" {
-  assert {
-    condition     = !(length(var.read_only_policy_arns) == 0 && length(var.read_only_inline_policies) == 0)
-    error_message = "At lest one of 'read_only_policy_arns' or 'read_only_inline_policies' must be specified"
-  }
-
-  assert {
-    condition     = !(length(var.read_write_policy_arns) == 0 && length(var.read_write_inline_policies) == 0)
-    error_message = "At least one of 'read_write_policy_arns' or 'read_write_inline_policies' must be specified"
-  }
-}
-
 check "permission_boundary" {
   # Either permission_boundary or permission_boundary_arn must be specified
   assert {
