@@ -52,7 +52,7 @@ No modules.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.43.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | n/a |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
@@ -71,11 +71,11 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_account_id"></a> [account\_id](#input\_account\_id) | Account ID where the remote state bucket is located | `string` | `null` | no |
 | <a name="input_reader_role_arn"></a> [reader\_role\_arn](#input\_reader\_role\_arn) | The ARN of the reader role to assume in order to read the remote state | `string` | n/a | yes |
-| <a name="input_region"></a> [region](#input\_region) | The region name where the destination resources have been created | `string` | `null` | no |
 | <a name="input_repository"></a> [repository](#input\_repository) | The name of the repository to lookup remote state for | `string` | n/a | yes |
 | <a name="input_web_identity_token_file"></a> [web\_identity\_token\_file](#input\_web\_identity\_token\_file) | Path to the web identity token file | `string` | n/a | yes |
+| <a name="input_account_id"></a> [account\_id](#input\_account\_id) | Account ID where the remote state bucket is located | `string` | `null` | no |
+| <a name="input_region"></a> [region](#input\_region) | The region name where the destination resources have been created | `string` | `null` | no |
 
 ## Outputs
 
