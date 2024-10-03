@@ -60,7 +60,7 @@ resource "aws_iam_role" "ro" {
   }
 
   dynamic "inline_policy" {
-    for_each = var.read_only_inline_policies
+    for_each = merge(var.read_only_inline_policies, var.default_inline_policies)
 
     content {
       name   = inline_policy.key
@@ -71,7 +71,7 @@ resource "aws_iam_role" "ro" {
 
 ## Attach the read only policies to the read only role
 resource "aws_iam_role_policy_attachment" "ro" {
-  for_each = toset(var.read_only_policy_arns)
+  for_each = toset(concat(var.default_managed_policies, var.read_only_policy_arns))
 
   policy_arn = each.key
   role       = aws_iam_role.ro.name
@@ -146,7 +146,7 @@ resource "aws_iam_role" "rw" {
   }
 
   dynamic "inline_policy" {
-    for_each = var.read_write_inline_policies
+    for_each = merge(var.read_write_inline_policies, var.default_inline_policies)
 
     content {
       name   = inline_policy.key
@@ -157,7 +157,7 @@ resource "aws_iam_role" "rw" {
 
 ## Attach the read write policies to the read write role
 resource "aws_iam_role_policy_attachment" "rw" {
-  for_each = toset(var.read_write_policy_arns)
+  for_each = toset(concat(var.read_write_policy_arns, var.default_managed_policies))
 
   policy_arn = each.key
   role       = aws_iam_role.rw.name

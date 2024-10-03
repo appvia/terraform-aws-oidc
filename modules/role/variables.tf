@@ -25,6 +25,18 @@ variable "repository_uuid" {
   default     = null
 }
 
+variable "default_managed_policies" {
+  description = "List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write"
+  type        = list(string)
+  default     = []
+}
+
+variable "default_inline_policies" {
+  description = "Inline policies map with policy name as key and json as value, attached to both read-only and read-write roles"
+  type        = map(string)
+  default     = {}
+}
+
 variable "description" {
   type        = string
   description = "Description of the role being created"
