@@ -31,17 +31,3 @@ check "protected_by_config" {
     error_message = "'protected_by.tag' must not be an empty string"
   }
 }
-
-check "permission_boundary" {
-  # Either permission_boundary or permission_boundary_arn must be specified
-  assert {
-    condition     = !(var.permission_boundary == null && var.permission_boundary_arn == null)
-    error_message = "Either 'permission_boundary' or 'permission_boundary_arn' must be specified"
-  }
-
-  # Both permission_boundary and permission_boundary_arn cannot be specified 
-  assert {
-    condition     = !(var.permission_boundary != null && var.permission_boundary_arn != null)
-    error_message = "Only one of 'permission_boundary' or 'permission_boundary_arn' may be specified"
-  }
-}

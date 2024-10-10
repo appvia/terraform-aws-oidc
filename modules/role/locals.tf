@@ -6,8 +6,8 @@ locals {
 }
 
 locals {
-  # The current account ID 
-  account_id = data.aws_caller_identity.current.account_id
+  # The current account ID, if not provided
+  account_id = var.account_id != null ? var.account_id : data.aws_caller_identity.current.account_id
   ## The common OIDC providers to use 
   common_providers = {
     github = {

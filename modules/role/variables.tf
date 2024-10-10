@@ -3,6 +3,12 @@ variable "name" {
   description = "Name of the role to create"
 }
 
+variable "account_id" {
+  type        = string
+  description = "The AWS account ID to create the role in"
+  default     = null
+}
+
 variable "workspace_name" {
   description = "The name of the workspace."
   type        = string
