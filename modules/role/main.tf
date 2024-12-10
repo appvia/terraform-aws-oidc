@@ -1,10 +1,10 @@
 
 locals {
-  ## The name of the iam role to create for the readonly 
+  ## The name of the iam role to create for the readonly
   readonly_role_name = format("%s-ro", var.name)
   ## The name of the iam role to create for the readwrite
   readwrite_role_name = var.name
-  ## The name of the iam role to create for the state reader 
+  ## The name of the iam role to create for the state reader
   state_reader_role_name = format("%s-sr", var.name)
 }
 
@@ -53,20 +53,22 @@ resource "aws_iam_role" "ro" {
   path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readonly_role_name })
+}
 
-  inline_policy {
-    name   = "tfstate_plan"
-    policy = data.aws_iam_policy_document.tfstate_plan.json
-  }
+## Create an inline policy for the read only role
+resource "aws_iam_role_policy" "tfstate_plan_ro" {
+  name   = "tfstate_plan"
+  role   = aws_iam_role.ro.id
+  policy = data.aws_iam_policy_document.tfstate_plan.json
+}
 
-  dynamic "inline_policy" {
-    for_each = merge(var.read_only_inline_policies, var.default_inline_policies)
+## Provision the inline policies for the read only role
+resource "aws_iam_role_policy" "inline_policies_ro" {
+  for_each = merge(var.read_only_inline_policies, var.default_inline_policies)
 
-    content {
-      name   = inline_policy.key
-      policy = inline_policy.value
-    }
-  }
+  name   = each.key
+  role   = aws_iam_role.ro.id
+  policy = each.value
 }
 
 ## Attach the read only policies to the read only role
@@ -129,7 +131,7 @@ data "aws_iam_policy_document" "rw" {
   }
 }
 
-## Provision the read write role 
+## Provision the read write role
 resource "aws_iam_role" "rw" {
   assume_role_policy    = data.aws_iam_policy_document.rw.json
   description           = var.description
@@ -139,20 +141,22 @@ resource "aws_iam_role" "rw" {
   path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readwrite_role_name })
+}
 
-  inline_policy {
-    name   = "tfstate_apply"
-    policy = data.aws_iam_policy_document.tfstate_apply.json
-  }
+## Provision the inline terraform policy for the rw role
+resource "aws_iam_role_policy" "tfstate_apply_rw" {
+  name   = "tfstate_apply"
+  role   = aws_iam_role.rw.id
+  policy = data.aws_iam_policy_document.tfstate_apply.json
+}
 
-  dynamic "inline_policy" {
-    for_each = merge(var.read_write_inline_policies, var.default_inline_policies)
+## Provision the inline policies for the read write role
+resource "aws_iam_role_policy" "inline_policies_rw" {
+  for_each = merge(var.read_write_inline_policies, var.default_inline_policies)
 
-    content {
-      name   = inline_policy.key
-      policy = inline_policy.value
-    }
-  }
+  name   = each.key
+  role   = aws_iam_role.rw.id
+  policy = each.value
 }
 
 ## Attach the read write policies to the read write role
