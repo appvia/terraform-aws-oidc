@@ -14,6 +14,9 @@ run "github_providers" {
     description     = "Test role using GitHub OIDC provider"
     repository      = "appvia/something"
     common_provider = "github"
+    tags = {
+      Name = "GitHub"
+    }
 
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 
