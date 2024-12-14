@@ -146,8 +146,8 @@ resource "aws_iam_role" "rw" {
 ## Provision the inline terraform policy for the rw role
 resource "aws_iam_role_policy" "tfstate_apply_rw" {
   name   = "tfstate_apply"
-  role   = aws_iam_role.rw.id
   policy = data.aws_iam_policy_document.tfstate_apply.json
+  role   = aws_iam_role.rw.id
 }
 
 ## Provision the inline policies for the read write role
@@ -155,8 +155,8 @@ resource "aws_iam_role_policy" "inline_policies_rw" {
   for_each = merge(var.read_write_inline_policies, var.default_inline_policies)
 
   name   = each.key
-  role   = aws_iam_role.rw.id
   policy = each.value
+  role   = aws_iam_role.rw.id
 }
 
 ## Attach the read write policies to the read write role
@@ -210,9 +210,11 @@ resource "aws_iam_role" "sr" {
   name               = local.state_reader_role_name
   path               = var.role_path
   tags               = merge(var.tags, { Name = local.state_reader_role_name })
+}
 
-  inline_policy {
-    name   = "tfstate_remote"
-    policy = data.aws_iam_policy_document.tfstate_remote.json
-  }
+## Attach the state reader policies to the state reader role
+resource "aws_iam_role_policy" "sr" {
+  name   = "tfstate_remote"
+  policy = data.aws_iam_policy_document.tfstate_remote.json
+  role   = aws_iam_role.sr.id
 }
