@@ -10,6 +10,6 @@ locals {
   tf_state_bucket = format("%s-%s", local.account, local.region)
 
   ## Remote state role
-  role_arn = coalesce(var.reader_role_arn, format("arn:aws:iam::%s:role/%s-sr", var.account_id, var.repository))
+  role_arn = var.reader_role != null ? format("arn:aws:iam::%s:role/%s", local.account, var.reader_role) : format("arn:aws:iam::%s:role/%s-sr", local.account, var.repository)
 }
 

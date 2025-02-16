@@ -3,8 +3,8 @@ variable "account_id" {
   type        = string
 }
 
-variable "reader_role_arn" {
-  description = "The ARN of the reader role to assume in order to read the remote state"
+variable "reader_role" {
+  description = "The name of the reader role to assume in order to read the remote state"
   type        = string
   default     = null
 }
