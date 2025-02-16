@@ -6,7 +6,6 @@ terraform {
     aws = {
       source = "hashicorp/aws"
     }
-
     # tflint-ignore: terraform_required_providers
     tls = {
       source = "hashicorp/tls"
