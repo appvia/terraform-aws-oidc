@@ -21,22 +21,19 @@ data "aws_iam_policy_document" "base" {
 
     resources = [
       format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_prefix, local.repo_name, local.tf_state_suffix),
+      format("arn:aws:s3:::%s-tfstate/%s%s.tfstate.tflock", local.tf_state_prefix, local.repo_name, local.tf_state_suffix),
     ]
   }
-}
 
-## Craft a IAM policy for access to the DynamoDB table 
-data "aws_iam_policy_document" "dynamo" {
   statement {
     actions = [
-      "dynamodb:DeleteItem",
-      "dynamodb:DescribeTable",
-      "dynamodb:GetItem",
-      "dynamodb:PutItem",
+      "s3:DeleteObject",
+      "s3:ListBucket",
+      "s3:PutObject",
     ]
 
     resources = [
-      format("arn:aws:dynamodb:*:%s:table/%s-tflock", local.account_id, local.tf_state_prefix),
+      format("arn:aws:s3:::%s-tfstate/%s%s.tfstate.tflock", local.tf_state_prefix, local.repo_name, local.tf_state_suffix),
     ]
   }
 }
@@ -45,7 +42,6 @@ data "aws_iam_policy_document" "dynamo" {
 data "aws_iam_policy_document" "tfstate_apply" {
   source_policy_documents = [
     data.aws_iam_policy_document.base.json,
-    data.aws_iam_policy_document.dynamo.json,
   ]
 
   statement {
@@ -66,7 +62,6 @@ data "aws_iam_policy_document" "tfstate_apply" {
 data "aws_iam_policy_document" "tfstate_plan" {
   source_policy_documents = [
     data.aws_iam_policy_document.base.json,
-    data.aws_iam_policy_document.dynamo.json,
   ]
 }
 

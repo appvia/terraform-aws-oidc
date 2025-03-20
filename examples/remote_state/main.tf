@@ -13,10 +13,6 @@ module "basic" {
   // state being read.
   repository = "appvia/repo-1"
 
-  // ARN of the role to be assumed with the permissions to read
-  // the remote state file.
-  reader_role_arn = "arn:aws:iam::0123456789:role/test-common-role"
-
   // Path to the identity token file containing the credentials needed
   // to assume the role.
   web_identity_token_file = "/tmp/web_identity_token_file"
