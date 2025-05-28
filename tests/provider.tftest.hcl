@@ -1,3 +1,17 @@
+mock_provider "aws" {}
+
+mock_provider "tls" {
+  mock_data "tls_certificate" {
+    defaults = {
+      certificates = [
+        {
+          sha1_fingerprint = "1234567890abcdef1234567890abcdef12345678"
+        }
+      ]
+    }
+  }
+}
+
 run "common_providers" {
   command = plan
 
