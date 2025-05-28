@@ -32,7 +32,11 @@ locals {
 
       subject_reader_mapping = "project_path:{repo}:*"
       subject_branch_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
-      subject_tag_mapping    = "project_path:{repo}:ref_type:{type}:ref:{ref}"
+      # GitLab includes environment info as separate JWT claims (environment, deployment_tier) 
+      # rather than in the subject claim. Need to use custom claim conditions for environment-based access.
+      # setting this to empty string to avoid null value error for now.
+      subject_env_mapping = ""
+      subject_tag_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
     }
 
     bitbucket = {
