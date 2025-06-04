@@ -1,5 +1,9 @@
-provider "aws" {
-
+mock_provider "aws" {
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+    }
+  }
 }
 
 run "github_providers" {
@@ -48,6 +52,10 @@ run "gitlab_providers" {
     repository      = "appvia/something"
     common_provider = "gitlab"
 
+    tags = {
+      Name = "GitLab"
+    }
+
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 
     read_only_policy_arns = [
@@ -68,15 +76,18 @@ run "custom_providers" {
   }
 
   variables {
-    name        = "custom"
-    description = "Test role using custom OIDC provider"
-    repository  = "appvia/something"
+    name            = "custom"
+    description     = "Test role using custom OIDC provider"
+    repository      = "appvia/something"
+    common_provider = ""
 
     custom_provider = {
       url                    = "https://token.actions.githubusercontent.com"
       audiences              = ["test"]
       subject_branch_mapping = "repo={repo},branch={ref}"
       subject_tag_mapping    = "repo={repo},tag={ref}"
+      subject_reader_mapping = "repo={repo}"
+      subject_env_mapping    = "repo={repo},environment={environment}"
     }
 
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
@@ -116,6 +127,10 @@ run "custom_providers" {
           }
         ]
       })
+    }
+
+    tags = {
+      Name = "Custom"
     }
   }
 }
