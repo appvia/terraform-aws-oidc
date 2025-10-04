@@ -1,5 +1,3 @@
-mock_provider "aws" {}
-
 mock_provider "tls" {
   mock_data "tls_certificate" {
     defaults = {
@@ -8,6 +6,19 @@ mock_provider "tls" {
           sha1_fingerprint = "1234567890abcdef1234567890abcdef12345678"
         }
       ]
+    }
+  }
+}
+
+mock_provider "aws" {
+  mock_data "aws_region" {
+    defaults = {
+      region = "us-west-2"
+    }
+  }
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
     }
   }
 }

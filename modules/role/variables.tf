@@ -1,12 +1,18 @@
 variable "name" {
-  type        = string
   description = "Name of the role to create"
+  type        = string
 }
 
 variable "account_id" {
-  type        = string
   description = "The AWS account ID to create the role in"
+  type        = string
   default     = null
+}
+
+variable "enable_entire_namespace" {
+  description = "Amended the S3 permissions to write to entire key space i.e <REPOSITORY_NAME>/*"
+  type        = bool
+  default     = false
 }
 
 variable "workspace_name" {
@@ -44,23 +50,24 @@ variable "default_inline_policies" {
 }
 
 variable "description" {
-  type        = string
   description = "Description of the role being created"
+  type        = string
 }
 
 variable "region" {
-  type        = string
   description = "The region in which the role will be used (defaulting to the provider region)"
+  type        = string
   default     = null
 }
 
 variable "common_provider" {
+  description = "The name of a common OIDC provider to be used as the trust for the role"
   type        = string
   default     = "github"
-  description = "The name of a common OIDC provider to be used as the trust for the role"
 }
 
 variable "custom_provider" {
+  description = "An object representing an `aws_iam_openid_connect_provider` resource"
   type = object({
     url                    = string
     audiences              = list(string)
@@ -70,110 +77,107 @@ variable "custom_provider" {
     subject_tag_mapping    = string
   })
 
-  default     = null
-  description = "An object representing an `aws_iam_openid_connect_provider` resource"
+  default = null
 }
 
 variable "additional_audiences" {
+  description = "Additional audiences to be allowed in the OIDC federation mapping"
   type        = list(string)
   default     = []
-  description = "Additional audiences to be allowed in the OIDC federation mapping"
 }
 
 variable "tf_state_suffix" {
+  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate"
   type        = string
   default     = ""
-  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate"
 }
 
 variable "repository" {
+  description = "Repository to be allowed in the OIDC federation mapping"
   type        = string
-  description = "List of repositories to be allowed in the OIDC federation mapping"
 }
 
 variable "shared_repositories" {
+  description = "List of repositories to provide read access to the remote state"
   type        = list(string)
   default     = []
-  description = "List of repositories to provide read access to the remote state"
 }
 
 variable "protected_by" {
+  description = "The branch, environment and/or tag to protect the role against"
   type = object({
     branch      = optional(string)
     environment = optional(string)
     tag         = optional(string)
   })
-
   default = {
     branch      = "main"
     environment = "production"
     tag         = "*"
   }
-
-  description = "The branch, environment and/or tag to protect the role against"
 }
 
 variable "role_path" {
+  description = "Path under which to create IAM role."
   type        = string
   default     = null
-  description = "Path under which to create IAM role."
 }
 
 variable "read_only_policy_arns" {
+  description = "List of IAM policy ARNs to attach to the read-only role"
   type        = list(string)
   default     = []
-  description = "List of IAM policy ARNs to attach to the read-only role"
 }
 
 variable "read_only_inline_policies" {
+  description = "Inline policies map with policy name as key and json as value."
   type        = map(string)
   default     = {}
-  description = "Inline policies map with policy name as key and json as value."
 }
 
 variable "read_write_policy_arns" {
+  description = "List of IAM policy ARNs to attach to the read-write role"
   type        = list(string)
   default     = []
-  description = "List of IAM policy ARNs to attach to the read-write role"
 }
 
 variable "read_write_inline_policies" {
+  description = "Inline policies map with policy name as key and json as value."
   type        = map(string)
   default     = {}
-  description = "Inline policies map with policy name as key and json as value."
 }
 
 variable "read_only_max_session_duration" {
+  description = "The maximum session duration (in seconds) that you want to set for the specified role"
   type        = number
   default     = null
-  description = "The maximum session duration (in seconds) that you want to set for the specified role"
 }
 
 variable "read_write_max_session_duration" {
+  description = "The maximum session duration (in seconds) that you want to set for the specified role"
   type        = number
   default     = null
-  description = "The maximum session duration (in seconds) that you want to set for the specified role"
 }
 
 variable "force_detach_policies" {
+  description = "Flag to force detachment of policies attached to the IAM role."
   type        = bool
   default     = null
-  description = "Flag to force detachment of policies attached to the IAM role."
 }
 
 variable "permission_boundary" {
-  type        = string
   description = "The name of the policy that is used to set the permissions boundary for the IAM role"
+  type        = string
   default     = null
 }
 
 variable "permission_boundary_arn" {
-  type        = string
   description = "The full ARN of the permission boundary to attach to the role"
+  type        = string
   default     = null
 }
 
 variable "tags" {
-  type        = map(string)
   description = "Tags to apply resoures created by this module"
+  type        = map(string)
 }
