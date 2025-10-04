@@ -46,7 +46,7 @@ run "namespace_disabled_default" {
     name                    = "namespace-disabled"
     common_provider         = "github"
     description             = "Test role with namespace disabled (default behavior)"
-    enable_entire_namespace = false
+    enable_key_namespace    = false
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
@@ -89,7 +89,7 @@ run "namespace_enabled" {
     name                    = "namespace-enabled"
     common_provider         = "github"
     description             = "Test role with namespace enabled"
-    enable_entire_namespace = true
+    enable_key_namespace    = true
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
@@ -114,6 +114,7 @@ run "namespace_enabled" {
 
   assert {
     condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo/*"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate.tflock")
     ])
@@ -131,7 +132,7 @@ run "namespace_enabled_with_suffix" {
     name                    = "namespace-enabled-suffix"
     common_provider         = "github"
     description             = "Test role with namespace enabled and custom suffix"
-    enable_entire_namespace = true
+    enable_key_namespace    = true
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
@@ -145,6 +146,7 @@ run "namespace_enabled_with_suffix" {
 
   assert {
     condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production.tfstate"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production/*"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production.tfstate.tflock")
     ])
@@ -165,7 +167,7 @@ run "namespace_disabled_with_suffix" {
     repository      = "appvia/test-repo"
     common_provider = "github"
     # Disable namespace access with custom suffix
-    enable_entire_namespace = false
+    enable_key_namespace    = false
     tf_state_suffix         = "staging"
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]

@@ -78,23 +78,23 @@ graph TB
         MAIN[Merge to Main]
         SHARED[Shared Infrastructure]
     end
-    
+
     subgraph "AWS IAM Roles"
         RO[Read-Only Role<br/>- Terraform Plan<br/>- State Read<br/>- Validation]
         RW[Read-Write Role<br/>- Terraform Apply<br/>- State Write<br/>- Protected by Branch/Env/Tag]
         SR[State Reader Role<br/>- Cross-Repo State Access<br/>- Read-Only State Access]
     end
-    
+
     subgraph "AWS Resources"
         S3[S3 State Bucket]
         DDB[DynamoDB Lock Table]
         RESOURCES[AWS Resources]
     end
-    
+
     PR --> RO
     MAIN --> RW
     SHARED --> SR
-    
+
     RO --> S3
     RO --> DDB
     RW --> S3
@@ -111,7 +111,7 @@ sequenceDiagram
     participant OIDC as OIDC Provider
     participant AWS as AWS STS
     participant IAM as IAM Role
-    
+
     CI->>OIDC: Request JWT Token
     OIDC->>CI: Return JWT with Claims
     CI->>AWS: AssumeRoleWithWebIdentity
@@ -123,11 +123,11 @@ sequenceDiagram
 
 ## Supported Source Control Providers
 
-| Provider | OIDC URL | Audience | Subject Mapping |
-|----------|----------|----------|-----------------|
-| **GitHub** | `https://token.actions.githubusercontent.com` | `sts.amazonaws.com` | `repo:{repo}:*` |
-| **GitLab** | `https://gitlab.com` | `https://gitlab.com` | `project_path:{repo}:*` |
-| **Bitbucket** | `https://api.bitbucket.org/2.0/workspaces/{workspace}/pipelines-config/identity/oidc` | `ari:cloud:bitbucket::workspace/{uuid}` | `{repo_uuid}:*` |
+| Provider      | OIDC URL                                                                              | Audience                                | Subject Mapping         |
+| ------------- | ------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------- |
+| **GitHub**    | `https://token.actions.githubusercontent.com`                                         | `sts.amazonaws.com`                     | `repo:{repo}:*`         |
+| **GitLab**    | `https://gitlab.com`                                                                  | `https://gitlab.com`                    | `project_path:{repo}:*` |
+| **Bitbucket** | `https://api.bitbucket.org/2.0/workspaces/{workspace}/pipelines-config/identity/oidc` | `ari:cloud:bitbucket::workspace/{uuid}` | `{repo_uuid}:*`         |
 
 ## Usage
 
@@ -138,24 +138,24 @@ This example demonstrates the basic setup for GitHub Actions with default config
 ```hcl
 module "terraform_roles" {
   source = "appvia/oidc/aws//modules/role"
-  
+
   name        = "terraform-ci-cd"
   description = "IAM roles for Terraform CI/CD pipeline"
   repository  = "my-org/my-terraform-repo"
-  
+
   # Permission boundary for security
   permission_boundary = "TerraformExecutionBoundary"
-  
+
   # Default policies for both roles
   default_managed_policies = [
     "arn:aws:iam::aws:policy/ReadOnlyAccess"
   ]
-  
+
   # Read-write specific policies
   read_write_policy_arns = [
     "arn:aws:iam::aws:policy/PowerUserAccess"
   ]
-  
+
   tags = {
     Environment = "production"
     Project     = "infrastructure"
@@ -171,21 +171,21 @@ This example shows how to configure different access levels for different enviro
 ```hcl
 module "terraform_roles_advanced" {
   source = "appvia/oidc/aws//modules/role"
-  
+
   name        = "terraform-multi-env"
   description = "Advanced IAM roles for multi-environment Terraform"
   repository  = "my-org/infrastructure"
-  
+
   # Enhanced protection controls
   protected_by = {
     branch      = "main"
     environment = "production"
     tag         = "v*"
   }
-  
+
   # Custom permission boundary
   permission_boundary_arn = "arn:aws:iam::123456789012:policy/CustomTerraformBoundary"
-  
+
   # Custom inline policies for read-only role
   read_only_inline_policies = {
     "S3SpecificAccess" = jsonencode({
@@ -205,7 +205,7 @@ module "terraform_roles_advanced" {
       ]
     })
   }
-  
+
   # Custom inline policies for read-write role
   read_write_inline_policies = {
     "EC2Management" = jsonencode({
@@ -222,15 +222,15 @@ module "terraform_roles_advanced" {
       ]
     })
   }
-  
+
   # Session duration limits
   read_only_max_session_duration  = 3600  # 1 hour
   read_write_max_session_duration = 7200  # 2 hours
-  
+
   # State management configuration
   tf_state_suffix = "prod"
-  enable_entire_namespace = true
-  
+  enable_key_namespace = true
+
   tags = {
     Environment = "production"
     Project     = "infrastructure"
@@ -247,23 +247,23 @@ This example demonstrates how to enable cross-repository state sharing for share
 ```hcl
 module "shared_infrastructure_roles" {
   source = "appvia/oidc/aws//modules/role"
-  
+
   name        = "shared-infrastructure"
   description = "Roles for shared infrastructure state access"
   repository  = "my-org/shared-infrastructure"
-  
+
   # Enable cross-repository state sharing
   shared_repositories = [
     "my-org/app1",
     "my-org/app2",
     "my-org/app3"
   ]
-  
+
   # State reader role gets read access to shared state
   read_only_policy_arns = [
     "arn:aws:iam::aws:policy/ReadOnlyAccess"
   ]
-  
+
   tags = {
     Environment = "shared"
     Project     = "infrastructure"
@@ -279,28 +279,28 @@ This example shows how to configure a custom OIDC provider for non-standard CI/C
 ```hcl
 module "custom_oidc_roles" {
   source = "appvia/oidc/aws//modules/role"
-  
+
   name        = "custom-ci-cd"
   description = "Roles for custom CI/CD system"
   repository  = "my-org/custom-pipeline"
-  
+
   # Custom OIDC provider configuration
   custom_provider = {
     url       = "https://my-custom-oidc-provider.com"
     audiences = ["my-custom-audience"]
-    
+
     subject_reader_mapping = "repo:{repo}:*"
     subject_branch_mapping = "repo:{repo}:ref:refs/heads/{ref}"
     subject_env_mapping    = "repo:{repo}:environment:{env}"
     subject_tag_mapping    = "repo:{repo}:ref:refs/tags/{ref}"
   }
-  
+
   # Additional audiences
   additional_audiences = [
     "sts.amazonaws.com",
     "my-backup-audience"
   ]
-  
+
   tags = {
     Environment = "production"
     Project     = "custom-pipeline"
@@ -316,23 +316,23 @@ This example demonstrates configuration for Bitbucket Pipelines with workspace a
 ```hcl
 module "bitbucket_roles" {
   source = "appvia/oidc/aws//modules/role"
-  
+
   name        = "bitbucket-terraform"
   description = "IAM roles for Bitbucket Pipelines"
   repository  = "my-workspace/my-terraform-repo"
-  
+
   # Bitbucket-specific configuration
   common_provider = "bitbucket"
   workspace_name  = "my-workspace"
   workspace_uuid  = "8a1f1c70-cbc0-452c-81ce-07534945e18b"
   repository_uuid = "12345678-1234-1234-1234-123456789abc"
-  
+
   # Protection controls
   protected_by = {
     branch = "main"
     tag    = "release-*"
   }
-  
+
   tags = {
     Environment = "production"
     Project     = "infrastructure"
@@ -586,7 +586,7 @@ No modules.
 | <a name="input_custom_provider"></a> [custom\_provider](#input\_custom\_provider) | An object representing an `aws_iam_openid_connect_provider` resource | <pre>object({<br/>    url                    = string<br/>    audiences              = list(string)<br/>    subject_reader_mapping = string<br/>    subject_branch_mapping = string<br/>    subject_env_mapping    = string<br/>    subject_tag_mapping    = string<br/>  })</pre> | `null` | no |
 | <a name="input_default_inline_policies"></a> [default\_inline\_policies](#input\_default\_inline\_policies) | Inline policies map with policy name as key and json as value, attached to both read-only and read-write roles | `map(string)` | `{}` | no |
 | <a name="input_default_managed_policies"></a> [default\_managed\_policies](#input\_default\_managed\_policies) | List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write | `list(string)` | `[]` | no |
-| <a name="input_enable_entire_namespace"></a> [enable\_entire\_namespace](#input\_enable\_entire\_namespace) | Amended the S3 permissions to write to entire key space i.e <REPOSITORY\_NAME>/* | `bool` | `false` | no |
+| <a name="input_enable_key_namespace"></a> [enable\_key\_namespace](#input\_enable\_key\_namespace) | Amended the S3 permissions to write to entire key space i.e <REPOSITORY\_NAME>/* | `bool` | `false` | no |
 | <a name="input_force_detach_policies"></a> [force\_detach\_policies](#input\_force\_detach\_policies) | Flag to force detachment of policies attached to the IAM role. | `bool` | `null` | no |
 | <a name="input_permission_boundary"></a> [permission\_boundary](#input\_permission\_boundary) | The name of the policy that is used to set the permissions boundary for the IAM role | `string` | `null` | no |
 | <a name="input_permission_boundary_arn"></a> [permission\_boundary\_arn](#input\_permission\_boundary\_arn) | The full ARN of the permission boundary to attach to the role | `string` | `null` | no |

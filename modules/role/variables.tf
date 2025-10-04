@@ -9,7 +9,7 @@ variable "account_id" {
   default     = null
 }
 
-variable "enable_entire_namespace" {
+variable "enable_key_namespace" {
   description = "Amended the S3 permissions to write to entire key space i.e <REPOSITORY_NAME>/*"
   type        = bool
   default     = false
