@@ -116,10 +116,21 @@ run "namespace_enabled" {
     condition = alltrue([
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo/*"),
-      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate.tflock")
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo/*.tfstate.tflock"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate.tflock"),
     ])
     error_message = "S3 policy should use namespace wildcard when namespace is enabled"
   }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:DeleteObject"),
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:ListBucket"),
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:PutObject"),
+    ])
+    error_message = "S3 policy should allow delete, list bucket and put object"
+  }
+
 }
 
 run "namespace_enabled_with_suffix" {
@@ -148,7 +159,25 @@ run "namespace_enabled_with_suffix" {
     condition = alltrue([
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production.tfstate"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production/*"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production/*.tfstate.tflock"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production.tfstate.tflock")
+    ])
+    error_message = "S3 policy should use namespace wildcard when namespace is enabled"
+  }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:DeleteObject"),
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:ListBucket"),
+      contains(data.aws_iam_policy_document.base.statement[2].actions, "s3:PutObject"),
+    ])
+    error_message = "S3 policy should allow delete, list bucket and put object"
+  }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production.tfstate.tflock"),
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo-production/*.tfstate.tflock"),
     ])
     error_message = "S3 policy should use namespace wildcard when namespace is enabled"
   }
