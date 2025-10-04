@@ -1,19 +1,17 @@
 
 locals {
-  ## The name of the iam role to create for the readonly
+  ## The name of the iam role to create for the readonly - i.e. terraform plans
   readonly_role_name = format("%s-ro", var.name)
-  ## The name of the iam role to create for the readwrite
+  ## The name of the iam role to create for the readwrite - i.e. terraform apply
   readwrite_role_name = var.name
-  ## The name of the iam role to create for the state reader
+  ## The name of the iam role to create for the state reader - i.e. terraform remote state
   state_reader_role_name = format("%s-sr", var.name)
 }
 
 ## Craft a trust policy for the readonly role
-data "aws_iam_policy_document" "ro" {
+data "aws_iam_policy_document" "readonly_assume_role" {
   statement {
-    actions = [
-      "sts:AssumeRoleWithWebIdentity",
-    ]
+    actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
       type = "Federated"
@@ -45,11 +43,11 @@ data "aws_iam_policy_document" "ro" {
 
 ## Provision the read only role
 resource "aws_iam_role" "ro" {
-  assume_role_policy    = data.aws_iam_policy_document.ro.json
+  name                  = local.readonly_role_name
   description           = var.description
+  assume_role_policy    = data.aws_iam_policy_document.readonly_assume_role.json
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_only_max_session_duration
-  name                  = local.readonly_role_name
   path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readonly_role_name })
@@ -80,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "ro" {
 }
 
 ## Craft the trust policy for the read write role
-data "aws_iam_policy_document" "rw" {
+data "aws_iam_policy_document" "readwrite_assume_role" {
   statement {
     actions = [
       "sts:AssumeRoleWithWebIdentity",
@@ -133,11 +131,11 @@ data "aws_iam_policy_document" "rw" {
 
 ## Provision the read write role
 resource "aws_iam_role" "rw" {
-  assume_role_policy    = data.aws_iam_policy_document.rw.json
+  name                  = local.readwrite_role_name
   description           = var.description
+  assume_role_policy    = data.aws_iam_policy_document.readwrite_assume_role.json
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_write_max_session_duration
-  name                  = local.readwrite_role_name
   path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
   tags                  = merge(var.tags, { Name = local.readwrite_role_name })
@@ -168,7 +166,7 @@ resource "aws_iam_role_policy_attachment" "rw" {
 }
 
 ## Craft the trust policy for the state reader role
-data "aws_iam_policy_document" "sr" {
+data "aws_iam_policy_document" "state_reader_assume_role" {
   statement {
     actions = [
       "sts:AssumeRoleWithWebIdentity",
@@ -205,9 +203,9 @@ data "aws_iam_policy_document" "sr" {
 
 ## Provision the state reader role
 resource "aws_iam_role" "sr" {
-  assume_role_policy = data.aws_iam_policy_document.sr.json
-  description        = format("Terraform state reader role for '%s' repo", local.repo_name)
   name               = local.state_reader_role_name
+  description        = format("Terraform state reader role for '%s' repo", local.repo_name)
+  assume_role_policy = data.aws_iam_policy_document.state_reader_assume_role.json
   path               = var.role_path
   tags               = merge(var.tags, { Name = local.state_reader_role_name })
 }

@@ -4,6 +4,31 @@ mock_provider "aws" {
       json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
     }
   }
+
+  mock_data "aws_region" {
+    defaults = {
+      region = "us-west-2"
+    }
+  }
+
+  mock_data "aws_partition" {
+    defaults = {
+      partition = "aws"
+    }
+  }
+
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+    }
+  }
+
+  mock_data "iam_openid_connect_provider" {
+    defaults = {
+      url = "https://token.actions.githubusercontent.com"
+      arn = "arn:aws:iam::aws:oidc-provider/token.actions.githubusercontent.com"
+    }
+  }
 }
 
 run "github_providers" {
@@ -14,23 +39,16 @@ run "github_providers" {
   }
 
   variables {
-    name            = "common"
-    description     = "Test role using GitHub OIDC provider"
-    repository      = "appvia/something"
-    common_provider = "github"
+    name                    = "common"
+    description             = "Test role using GitHub OIDC provider"
+    repository              = "appvia/something"
+    common_provider         = "github"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     tags = {
       Name = "GitHub"
     }
-
-    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-
-    read_only_policy_arns = [
-      "arn:aws:iam::aws:policy/ReadOnlyAccess",
-    ]
-
-    read_write_policy_arns = [
-      "arn:aws:iam::aws:policy/AdministratorAccess",
-    ]
 
     shared_repositories = [
       "appvia/repo-1",
@@ -47,24 +65,16 @@ run "gitlab_providers" {
   }
 
   variables {
-    name            = "common"
-    description     = "Test role using GitLab OIDC provider"
-    repository      = "appvia/something"
-    common_provider = "gitlab"
-
+    name                    = "common"
+    description             = "Test role using GitLab OIDC provider"
+    repository              = "appvia/something"
+    common_provider         = "gitlab"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     tags = {
       Name = "GitLab"
     }
-
-    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-
-    read_only_policy_arns = [
-      "arn:aws:iam::aws:policy/ReadOnlyAccess",
-    ]
-
-    read_write_policy_arns = [
-      "arn:aws:iam::aws:policy/AdministratorAccess",
-    ]
   }
 }
 
@@ -76,10 +86,9 @@ run "custom_providers" {
   }
 
   variables {
-    name            = "custom"
-    description     = "Test role using custom OIDC provider"
-    repository      = "appvia/something"
-    common_provider = ""
+    name        = "custom"
+    description = "Test role using custom OIDC provider"
+    repository  = "appvia/something"
 
     custom_provider = {
       url                    = "https://token.actions.githubusercontent.com"

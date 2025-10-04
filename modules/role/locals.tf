@@ -2,7 +2,6 @@ locals {
   workspace_name  = var.workspace_name
   workspace_uuid  = var.workspace_uuid
   repository_uuid = var.repository_uuid
-
 }
 
 locals {
@@ -57,19 +56,20 @@ locals {
   # The full ARN of the permission boundary to attach to the role
   permission_boundary_arn = var.permission_boundary_arn == null ? local.permission_boundary_by_name : var.permission_boundary_arn
   # The region where the iam role will be used 
-  region = var.region != null ? var.region : data.aws_region.current.name
+  region = var.region != null ? var.region : data.aws_region.current.region
 }
 
 locals {
-  common_provider   = lookup(local.common_providers, var.common_provider, null)
+  # Find the source control provider from supplied list
+  common_provider = lookup(local.common_providers, var.common_provider, null)
+  # The selected provider from the supplied list
   selected_provider = var.custom_provider != null ? var.custom_provider : local.common_provider
-
   # Extract just the repository name part of the full path
   repo_name = element(split("/", var.repository), length(split("/", var.repository)) - 1)
-
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref|env)}"
   # The prefix for the terraform state key in the S3 bucket
-  tf_state_prefix = format("%s-%s", local.account_id, local.region)
+  tf_state_bucket = format("%s-%s", local.account_id, local.region)
+  # The suffix for the terraform state key in the S3 bucket
   tf_state_suffix = var.tf_state_suffix != "" ? format("-%s", var.tf_state_suffix) : ""
 }
