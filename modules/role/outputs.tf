@@ -15,6 +15,6 @@ output "read_write" {
 output "state_reader" {
   description = "The ARN of the IAM state reader role"
   value = {
-    arn = aws_iam_role.sr.arn
+    arn = local.enable_state_reader ? aws_iam_role.sr[0].arn : null
   }
 }

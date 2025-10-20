@@ -43,7 +43,7 @@ run "namespace_disabled_default" {
   }
 
   variables {
-    name                    = "namespace-disabled"
+    name                    = "test-repo"
     common_provider         = "github"
     description             = "Test role with namespace disabled (default behavior)"
     enable_key_namespace    = false
@@ -59,13 +59,13 @@ run "namespace_disabled_default" {
 
   # It should create a read only role
   assert {
-    condition     = aws_iam_role.ro.name == "namespace-disabled-ro"
+    condition     = aws_iam_role.ro.name == "test-repo-ro"
     error_message = "Read only role should be created with correct name"
   }
 
   # It should create a read write role
   assert {
-    condition     = aws_iam_role.rw.name == "namespace-disabled"
+    condition     = aws_iam_role.rw.name == "test-repo"
     error_message = "Read write role should be created with correct name"
   }
 
@@ -86,7 +86,7 @@ run "namespace_enabled" {
   }
 
   variables {
-    name                    = "namespace-enabled"
+    name                    = "test-repo"
     common_provider         = "github"
     description             = "Test role with namespace enabled"
     enable_key_namespace    = true
@@ -102,13 +102,13 @@ run "namespace_enabled" {
 
   # It should create a read only role
   assert {
-    condition     = aws_iam_role.ro.name == "namespace-enabled-ro"
+    condition     = aws_iam_role.ro.name == "test-repo-ro"
     error_message = "Read only role should be created with correct name"
   }
 
   # It should create a read write role
   assert {
-    condition     = aws_iam_role.rw.name == "namespace-enabled"
+    condition     = aws_iam_role.rw.name == "test-repo"
     error_message = "Read write role should be created with correct name"
   }
 
@@ -140,7 +140,7 @@ run "namespace_enabled_with_suffix" {
   }
 
   variables {
-    name                    = "namespace-enabled-suffix"
+    name                    = "test-repo"
     common_provider         = "github"
     description             = "Test role with namespace enabled and custom suffix"
     enable_key_namespace    = true
@@ -191,7 +191,7 @@ run "namespace_disabled_with_suffix" {
   }
 
   variables {
-    name            = "namespace-disabled-suffix"
+    name            = "test-repo"
     description     = "Test role with namespace disabled and custom suffix"
     repository      = "appvia/test-repo"
     common_provider = "github"

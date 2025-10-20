@@ -578,7 +578,6 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_description"></a> [description](#input\_description) | Description of the role being created | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the role to create | `string` | n/a | yes |
-| <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resoures created by this module | `map(string)` | n/a | yes |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The AWS account ID to create the role in | `string` | `null` | no |
 | <a name="input_additional_audiences"></a> [additional\_audiences](#input\_additional\_audiences) | Additional audiences to be allowed in the OIDC federation mapping | `list(string)` | `[]` | no |
@@ -598,12 +597,11 @@ No modules.
 | <a name="input_read_write_max_session_duration"></a> [read\_write\_max\_session\_duration](#input\_read\_write\_max\_session\_duration) | The maximum session duration (in seconds) that you want to set for the specified role | `number` | `null` | no |
 | <a name="input_read_write_policy_arns"></a> [read\_write\_policy\_arns](#input\_read\_write\_policy\_arns) | List of IAM policy ARNs to attach to the read-write role | `list(string)` | `[]` | no |
 | <a name="input_region"></a> [region](#input\_region) | The region in which the role will be used (defaulting to the provider region) | `string` | `null` | no |
-| <a name="input_repository_uuid"></a> [repository\_uuid](#input\_repository\_uuid) | Repository UUID. You can get it in the repository settings in the OpenID connect provider. | `string` | `null` | no |
+| <a name="input_repositories"></a> [repositories](#input\_repositories) | A collection of repositories to to bind the permissions | `list(string)` | `[]` | no |
+| <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping | `string` | `null` | no |
 | <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `null` | no |
 | <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the remote state | `list(string)` | `[]` | no |
 | <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform statefile, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
-| <a name="input_workspace_name"></a> [workspace\_name](#input\_workspace\_name) | The name of the workspace. | `string` | `null` | no |
-| <a name="input_workspace_uuid"></a> [workspace\_uuid](#input\_workspace\_uuid) | Workspace UUID. You can get it in the repository settings in the OpenID connect provider. Don't include the brackets and make sure it is lower cased. | `string` | `null` | no |
 
 ## Outputs
 
