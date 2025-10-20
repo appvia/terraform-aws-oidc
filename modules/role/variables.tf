@@ -15,28 +15,6 @@ variable "enable_key_namespace" {
   default     = false
 }
 
-variable "workspace_name" {
-  description = "The name of the workspace."
-  type        = string
-  default     = null
-}
-
-variable "workspace_uuid" {
-  description = "Workspace UUID. You can get it in the repository settings in the OpenID connect provider. Don't include the brackets and make sure it is lower cased."
-  type        = string
-  default     = null
-  validation {
-    condition     = var.workspace_uuid == null || can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.workspace_uuid))
-    error_message = "The uuid format is not matching. Make sure it is lowercased and brackets are not included. Here's a valid example: 8a1f1c70-cbc0-452c-81ce-07534945e18b."
-  }
-}
-
-variable "repository_uuid" {
-  description = "Repository UUID. You can get it in the repository settings in the OpenID connect provider."
-  type        = string
-  default     = null
-}
-
 variable "default_managed_policies" {
   description = "List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write"
   type        = list(string)
@@ -95,6 +73,13 @@ variable "tf_state_suffix" {
 variable "repository" {
   description = "Repository to be allowed in the OIDC federation mapping"
   type        = string
+  default     = null
+}
+
+variable "repositories" {
+  description = "A collection of repositories to to bind the permissions"
+  type        = list(string)
+  default     = []
 }
 
 variable "shared_repositories" {
