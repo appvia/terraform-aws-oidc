@@ -67,6 +67,8 @@ resource "aws_iam_role" "rw" {
 
 ## Create an inline policy for the read write role to allow access to the terraform state
 resource "aws_iam_role_policy" "tfstate_apply_rw" {
+  count = var.enable_terraform_state ? 1 : 0
+
   name   = "tfstate_apply"
   policy = data.aws_iam_policy_document.tfstate_apply.json
   role   = aws_iam_role.rw.id
