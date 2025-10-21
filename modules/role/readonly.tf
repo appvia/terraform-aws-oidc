@@ -56,6 +56,8 @@ resource "aws_iam_role" "ro" {
 
 ## Create an inline policy for the read only role
 resource "aws_iam_role_policy" "tfstate_plan_ro" {
+  count = var.enable_terraform_state ? 1 : 0
+
   name   = "tfstate_plan"
   role   = aws_iam_role.ro.id
   policy = data.aws_iam_policy_document.tfstate_plan.json

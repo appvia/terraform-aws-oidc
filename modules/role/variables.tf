@@ -9,6 +9,12 @@ variable "account_id" {
   default     = null
 }
 
+variable "enable_terraform_state" {
+  description = "Indicates we should create the terraform state and lock file permissions"
+  type        = bool
+  default     = true
+}
+
 variable "enable_key_namespace" {
   description = "Amended the S3 permissions to write to entire key space i.e <REPOSITORY_NAME>/*"
   type        = bool

@@ -586,6 +586,7 @@ No modules.
 | <a name="input_default_inline_policies"></a> [default\_inline\_policies](#input\_default\_inline\_policies) | Inline policies map with policy name as key and json as value, attached to both read-only and read-write roles | `map(string)` | `{}` | no |
 | <a name="input_default_managed_policies"></a> [default\_managed\_policies](#input\_default\_managed\_policies) | List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write | `list(string)` | `[]` | no |
 | <a name="input_enable_key_namespace"></a> [enable\_key\_namespace](#input\_enable\_key\_namespace) | Amended the S3 permissions to write to entire key space i.e <REPOSITORY\_NAME>/* | `bool` | `false` | no |
+| <a name="input_enable_terraform_state"></a> [enable\_terraform\_state](#input\_enable\_terraform\_state) | Indicates we should create the terraform state and lock file permissions | `bool` | `true` | no |
 | <a name="input_force_detach_policies"></a> [force\_detach\_policies](#input\_force\_detach\_policies) | Flag to force detachment of policies attached to the IAM role. | `bool` | `null` | no |
 | <a name="input_permission_boundary"></a> [permission\_boundary](#input\_permission\_boundary) | The name of the policy that is used to set the permissions boundary for the IAM role | `string` | `null` | no |
 | <a name="input_permission_boundary_arn"></a> [permission\_boundary\_arn](#input\_permission\_boundary\_arn) | The full ARN of the permission boundary to attach to the role | `string` | `null` | no |
