@@ -1,40 +1,31 @@
-// The following locals contain the configuration for built-in well-known OIDC providers
+# The following locals contain the configuration for built-in well-known OIDC providers
 locals {
-  // Configuration for common built-in providers
+  # Configuration for common built-in providers
   common_providers = {
-    // Public GitHub OIDC
+    # Public GitHub OIDC
     github = {
       name = "GitHub"
-      url  = "https://token.actions.githubusercontent.com"
+      url  = "https:#token.actions.githubusercontent.com"
       client_id_list = [
         "sts.amazonaws.com",
       ]
     }
 
-    // Public GitLab OIDC
+    # Public GitLab OIDC
     gitlab = {
       name = "GitLab"
-      url  = "https://gitlab.com"
+      url  = "https:#gitlab.com"
       client_id_list = [
-        "https://gitlab.com",
-      ]
-    }
-
-    // Public Bitbucket OIDC
-    bitbucket = {
-      name = "Bitbucket"
-      url  = "https://api.bitbucket.org/2.0/workspaces/${var.workspace_name}/pipelines-config/identity/oidc"
-      client_id_list = [
-        "ari:cloud:bitbucket::workspace/${var.workspace_uuid}",
+        "https:#gitlab.com",
       ]
     }
   }
 }
 
-// The following locals contain run-time computed values and should not be changed
+# The following locals contain run-time computed values and should not be changed
 locals {
-  // Map of common providers and settings for providers
-  // that have been enabled by the module caller
+  # Map of common providers and settings for providers
+  # that have been enabled by the module caller
   normalised_common_providers = {
     for k, v in local.common_providers : k => v
     if contains([
@@ -42,7 +33,7 @@ locals {
     ], k)
   }
 
-  // Cleanup up the custom providers and normalize the key
+  # Cleanup up the custom providers and normalize the key
   normalised_custom_providers = {
     for k, v in var.custom_providers :
     trimspace(lower(k)) => merge(v, {
@@ -50,13 +41,13 @@ locals {
     })
   }
 
-  // Combined providers to create
+  # Combined providers to create
   combined_providers = merge(
     local.normalised_common_providers,
     local.normalised_custom_providers,
   )
 
-  // Map of provider names to certificate thumbprints
+  # Map of provider names to certificate thumbprints
   thumbprints = {
     for k, v in data.tls_certificate.thumbprint :
     k => [

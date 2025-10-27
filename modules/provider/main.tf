@@ -5,7 +5,7 @@ check "provider_config" {
   }
 }
 
-// Lookup certificate thumbprint
+# Lookup certificate thumbprint
 data "tls_certificate" "thumbprint" {
   for_each = {
     for k, v in local.combined_providers :
@@ -15,7 +15,7 @@ data "tls_certificate" "thumbprint" {
   url = each.value["url"]
 }
 
-// Create IAM OIDC provider
+# Create IAM OIDC provider
 resource "aws_iam_openid_connect_provider" "this" {
   for_each = local.combined_providers
 
