@@ -5,7 +5,7 @@ locals {
     # Public GitHub OIDC
     github = {
       name = "GitHub"
-      url  = "https:#token.actions.githubusercontent.com"
+      url  = "https://token.actions.githubusercontent.com"
       client_id_list = [
         "sts.amazonaws.com",
       ]
@@ -14,9 +14,9 @@ locals {
     # Public GitLab OIDC
     gitlab = {
       name = "GitLab"
-      url  = "https:#gitlab.com"
+      url  = "https://gitlab.com"
       client_id_list = [
-        "https:#gitlab.com",
+        "https://gitlab.com",
       ]
     }
   }
