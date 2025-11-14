@@ -82,12 +82,6 @@ variable "repository" {
   default     = null
 }
 
-variable "repositories" {
-  description = "A collection of repositories to to bind the permissions"
-  type        = list(string)
-  default     = []
-}
-
 variable "shared_repositories" {
   description = "List of repositories to provide read access to the remote state"
   type        = list(string)
