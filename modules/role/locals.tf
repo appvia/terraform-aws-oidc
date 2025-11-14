@@ -39,13 +39,15 @@ locals {
   # The region where the iam role will be used 
   region = var.region != null ? var.region : data.aws_region.current.region
   ## The list of repositories to create roles for
-  repositories = compact(concat([var.repository], []))
+  repositories = compact(concat([var.repository], var.repositories))
   # Find the source control provider from supplied list
   common_provider = lookup(local.common_providers, var.common_provider, null)
   # The selected provider from the supplied list
   selected_provider = var.custom_provider != null ? var.custom_provider : local.common_provider
+  # The repository name if it is provided, else an empty string
+  repository = try(var.repository, "")
   # Extract just the repository name part of the full path
-  repository_name = element(split("/", var.repository), length(split("/", var.repository)) - 1)
+  repository_name = try(element(split("/", local.repository), length(split("/", local.repository)) - 1), "")
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref|env)}"
   # The prefix for the terraform state key in the S3 bucket

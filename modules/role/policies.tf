@@ -1,13 +1,14 @@
 locals {
+  ## Note: when using multiple repositories, the state key is the iam role name, else it is the repository name
+  state_key = length(var.repositories) > 0 ? var.name : local.repository_name
   # The default state key is PREFIX + REPOSITORY_NAME + .tfstate
-  default_state_key = format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_bucket, local.repository_name, local.tf_state_suffix)
+  default_state_key = format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_bucket, local.state_key, local.tf_state_suffix)
   # Is the default state lock file key
-  default_state_lock_file_key = format("arn:aws:s3:::%s-tfstate/%s%s.tfstate.tflock", local.tf_state_bucket, local.repository_name, local.tf_state_suffix)
-
+  default_state_lock_file_key = format("arn:aws:s3:::%s-tfstate/%s%s.tfstate.tflock", local.tf_state_bucket, local.state_key, local.tf_state_suffix)
   # The default state prefix when using the entire namespace is PREFIX + REPOSITORY_NAME + /*
-  default_state_namespace_key = format("arn:aws:s3:::%s-tfstate/%s%s/*", local.tf_state_bucket, local.repository_name, local.tf_state_suffix)
+  default_state_namespace_key = format("arn:aws:s3:::%s-tfstate/%s%s/*", local.tf_state_bucket, local.state_key, local.tf_state_suffix)
   # The prefix for the lock file
-  default_state_namespace_lock_file_key = format("arn:aws:s3:::%s-tfstate/%s%s/*.tfstate.tflock", local.tf_state_bucket, local.repository_name, local.tf_state_suffix)
+  default_state_namespace_lock_file_key = format("arn:aws:s3:::%s-tfstate/%s%s/*.tfstate.tflock", local.tf_state_bucket, local.state_key, local.tf_state_suffix)
 
   # Is the prefix for the terraform state key, by default this is PREFIX + REPOSITORY_NAME + .tfstate.
   # However, when the entire namespace is enabled, this is PREFIX + REPOSITORY_NAME + /*
