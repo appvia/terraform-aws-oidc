@@ -59,7 +59,7 @@ run "namespace_disabled_default" {
 
   # It should create a read only role
   assert {
-    condition     = aws_iam_role.ro.name == "test-repo-ro"
+    condition     = aws_iam_role.ro[0].name == "test-repo-ro"
     error_message = "Read only role should be created with correct name"
   }
 
@@ -102,7 +102,7 @@ run "namespace_enabled" {
 
   # It should create a read only role
   assert {
-    condition     = aws_iam_role.ro.name == "test-repo-ro"
+    condition     = aws_iam_role.ro[0].name == "test-repo-ro"
     error_message = "Read only role should be created with correct name"
   }
 

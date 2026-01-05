@@ -32,7 +32,6 @@ data "aws_iam_policy_document" "base" {
     actions = [
       "s3:ListBucket",
     ]
-
     resources = [
       format("arn:aws:s3:::%s-tfstate", local.tf_state_bucket),
       format("arn:aws:s3:::%s-tfstate/*", local.tf_state_bucket),
@@ -44,45 +43,19 @@ data "aws_iam_policy_document" "base" {
     sid = "AllowS3GetObject"
     actions = [
       "s3:GetObject",
-      "s3:GetObject",
       "s3:ListBucket",
     ]
-
     resources = local.terraform_state_keys
   }
 
   statement {
+    sid = "AllowS3LockFileObject"
     actions = [
       "s3:DeleteObject",
       "s3:ListBucket",
       "s3:PutObject",
     ]
-
     resources = local.terraform_lock_file_keys
   }
 }
 
-## Craft an IAM policy with the necessary permissions for terraform apply
-data "aws_iam_policy_document" "tfstate_apply" {
-  source_policy_documents = [
-    data.aws_iam_policy_document.base.json,
-  ]
-
-  statement {
-    actions = [
-      "s3:DeleteObject",
-      "s3:ListBucket",
-      "s3:PutObject",
-    ]
-
-    resources = local.terraform_state_keys
-  }
-}
-
-
-## Craft an IAM policy with the necessary permissions for terraform plan
-data "aws_iam_policy_document" "tfstate_plan" {
-  source_policy_documents = [
-    data.aws_iam_policy_document.base.json,
-  ]
-}

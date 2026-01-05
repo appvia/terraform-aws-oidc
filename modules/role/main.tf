@@ -1,10 +1,10 @@
 locals {
-  ## The name of the iam role to create for the readwrite - i.e. terraform apply
-  readwrite_role_name = var.name
+  ## The name of the iam role to create for the read write - i.e. terraform apply
+  read_write_role_name = var.name
 }
 
 ## Craft the trust policy for the read write role
-data "aws_iam_policy_document" "readwrite_assume_role" {
+data "aws_iam_policy_document" "read_write_assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     principals {
@@ -53,16 +53,33 @@ data "aws_iam_policy_document" "readwrite_assume_role" {
   }
 }
 
+## Craft an IAM policy with the necessary permissions for terraform apply
+data "aws_iam_policy_document" "tfstate_apply" {
+  source_policy_documents = [
+    data.aws_iam_policy_document.base.json,
+  ]
+
+  statement {
+    sid = "AllowS3ReadWriteObject"
+    actions = [
+      "s3:DeleteObject",
+      "s3:ListBucket",
+      "s3:PutObject",
+    ]
+    resources = local.terraform_state_keys
+  }
+}
+
 ## Provision the read write role used for terraform apply
 resource "aws_iam_role" "rw" {
-  name                  = local.readwrite_role_name
+  name                  = local.read_write_role_name
   description           = var.description
-  assume_role_policy    = data.aws_iam_policy_document.readwrite_assume_role.json
+  assume_role_policy    = data.aws_iam_policy_document.read_write_assume_role.json
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_write_max_session_duration
   path                  = var.role_path
   permissions_boundary  = local.permission_boundary_arn
-  tags                  = merge(var.tags, { Name = local.readwrite_role_name })
+  tags                  = merge(var.tags, { Name = local.read_write_role_name })
 }
 
 ## Create an inline policy for the read write role to allow access to the terraform state
