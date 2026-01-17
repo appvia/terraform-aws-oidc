@@ -57,7 +57,7 @@ run "multiple_repositories" {
 
   // Validate roles are created with expected names
   assert {
-    condition     = resource.aws_iam_role.ro.name == "common-ro"
+    condition     = resource.aws_iam_role.ro[0].name == "common-ro"
     error_message = "Read-only role name should be 'common-ro'"
   }
 

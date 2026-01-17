@@ -1,42 +1,47 @@
 locals {
   # The current account ID, if not provided
   account_id = var.account_id != null ? var.account_id : data.aws_caller_identity.current.account_id
-  ## The common OIDC providers to use 
+  ## The common OIDC providers to use
   common_providers = {
+    ## GitHub OIDC provider configuration
     github = {
+      ## GitHub OIDC provider configuration
       url = "https://token.actions.githubusercontent.com"
-
-      audiences = [
-        "sts.amazonaws.com",
-      ]
-
+      ## The audiences to be used for GitHub OIDC tokens
+      audiences = ["sts.amazonaws.com"]
+      ## The subject mapping templates for GitHub
       subject_reader_mapping = "repo:{repo}:*"
+      ## The branch subject mapping template for GitHub
       subject_branch_mapping = "repo:{repo}:ref:refs/heads/{ref}"
-      subject_env_mapping    = "repo:{repo}:environment:{env}"
-      subject_tag_mapping    = "repo:{repo}:ref:refs/tags/{ref}"
+      ## The environment subject mapping template for GitHub
+      subject_env_mapping = "repo:{repo}:environment:{env}"
+      ## The tag subject mapping template for GitHub
+      subject_tag_mapping = "repo:{repo}:ref:refs/tags/{ref}"
     }
 
+    ## GitLab OIDC provider configuration
     gitlab = {
+      ## The URL of the GitLab instance
       url = "https://gitlab.com"
-
-      audiences = [
-        "https://gitlab.com",
-      ]
-
+      ## The audiences to be used for GitLab OIDC tokens
+      audiences = ["https://gitlab.com"]
+      ## The subject mapping templates for gitlab
       subject_reader_mapping = "project_path:{repo}:*"
+      ## The branch subject mapping template for gitlab
       subject_branch_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
-      # GitLab includes environment info as separate JWT claims (environment, deployment_tier) 
+      # GitLab includes environment info as separate JWT claims (environment, deployment_tier)
       # rather than in the subject claim. Need to use custom claim conditions for environment-based access.
       # setting this to empty string to avoid null value error for now.
       subject_env_mapping = ""
+      ## The tag subject mapping template for gitlab
       subject_tag_mapping = "project_path:{repo}:ref_type:{type}:ref:{ref}"
     }
   }
-  # The devired permission_boundary arn 
+  # The derived permission_boundary arn
   permission_boundary_by_name = var.permission_boundary != null ? format("arn:aws:iam::%s:policy/%s", local.account_id, var.permission_boundary) : null
   # The full ARN of the permission boundary to attach to the role
   permission_boundary_arn = var.permission_boundary_arn == null ? local.permission_boundary_by_name : var.permission_boundary_arn
-  # The region where the iam role will be used 
+  # The region where the iam role will be used
   region = var.region != null ? var.region : data.aws_region.current.region
   ## The list of repositories to create roles for
   repositories = compact(concat([var.repository], var.repositories))

@@ -12,7 +12,7 @@ Modern CI/CD pipelines require secure access to AWS resources without storing lo
 
 - Eliminates the need for long-term AWS credentials in CI/CD systems
 - Provides granular access control based on repository, branch, environment, and tag context
-- Supports multiple source control providers (GitHub, GitLab, Bitbucket)
+- Supports multiple source control providers (GitHub, GitLab)
 - Enables secure cross-repository state sharing for complex infrastructure
 - Implements least-privilege access with permission boundaries
 
@@ -30,7 +30,6 @@ This module provides a complete OIDC-based authentication solution that creates 
 
 - **GitHub Actions**: Native support with `token.actions.githubusercontent.com`
 - **GitLab CI/CD**: Integration with GitLab's OIDC provider
-- **Bitbucket Pipelines**: Support for Bitbucket workspace-based OIDC
 - **Custom Providers**: Flexible configuration for any OIDC-compliant provider
 
 ### 🛡️ **Advanced Security Controls**
@@ -42,7 +41,7 @@ This module provides a complete OIDC-based authentication solution that creates 
 
 ### 🏗️ **Three-Role Architecture**
 
-- **Read-Only Role**: Safe for pull request validation and planning
+- **Read-Only Role**: Safe for pull request validation and planning (optional, enabled by default)
 - **Read-Write Role**: Protected by branch/environment/tag conditions
 - **State Reader Role**: Enables cross-repository state sharing
 
@@ -131,7 +130,6 @@ sequenceDiagram
 | ------------- | ------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------- |
 | **GitHub**    | `https://token.actions.githubusercontent.com`                                         | `sts.amazonaws.com`                     | `repo:{repo}:*`         |
 | **GitLab**    | `https://gitlab.com`                                                                  | `https://gitlab.com`                    | `project_path:{repo}:*` |
-| **Bitbucket** | `https://api.bitbucket.org/2.0/workspaces/{workspace}/pipelines-config/identity/oidc` | `ari:cloud:bitbucket::workspace/{uuid}` | `{repo_uuid}:*`         |
 
 ## Usage
 
@@ -315,29 +313,33 @@ module "custom_oidc_roles" {
 }
 ```
 
-### **Bitbucket Pipelines Configuration**
+### **Read-Write Only Configuration**
 
-This example demonstrates configuration for Bitbucket Pipelines with workspace and repository UUIDs.
+This example shows how to disable the read-only role when you only need a read-write role (e.g., for simplified CI/CD pipelines where plan and apply happen in the same protected workflow).
 
 ```hcl
-module "bitbucket_roles" {
+module "terraform_roles_rw_only" {
   source = "appvia/oidc/aws//modules/role"
 
-  name        = "bitbucket-terraform"
-  description = "IAM roles for Bitbucket Pipelines"
-  repository  = "my-workspace/my-terraform-repo"
+  name        = "terraform-rw-only"
+  description = "IAM read-write role only for protected deployments"
+  repository  = "my-org/my-terraform-repo"
 
-  # Bitbucket-specific configuration
-  common_provider = "bitbucket"
-  workspace_name  = "my-workspace"
-  workspace_uuid  = "8a1f1c70-cbc0-452c-81ce-07534945e18b"
-  repository_uuid = "12345678-1234-1234-1234-123456789abc"
+  # Disable read-only role creation
+  enable_read_only_role = false
 
-  # Protection controls
+  # Protection controls - only allow from main branch
   protected_by = {
     branch = "main"
-    tag    = "release-*"
   }
+
+  # Permission boundary for security
+  permission_boundary = "TerraformExecutionBoundary"
+
+  # Read-write policies
+  read_write_policy_arns = [
+    "arn:aws:iam::aws:policy/PowerUserAccess"
+  ]
 
   tags = {
     Environment = "production"
@@ -584,7 +586,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_description"></a> [description](#input\_description) | Description of the role being created | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the role to create | `string` | n/a | yes |
-| <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resoures created by this module | `map(string)` | n/a | yes |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resources created by this module | `map(string)` | n/a | yes |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The AWS account ID to create the role in | `string` | `null` | no |
 | <a name="input_additional_audiences"></a> [additional\_audiences](#input\_additional\_audiences) | Additional audiences to be allowed in the OIDC federation mapping | `list(string)` | `[]` | no |
 | <a name="input_common_provider"></a> [common\_provider](#input\_common\_provider) | The name of a common OIDC provider to be used as the trust for the role | `string` | `"github"` | no |
@@ -592,11 +594,12 @@ No modules.
 | <a name="input_default_inline_policies"></a> [default\_inline\_policies](#input\_default\_inline\_policies) | Inline policies map with policy name as key and json as value, attached to both read-only and read-write roles | `map(string)` | `{}` | no |
 | <a name="input_default_managed_policies"></a> [default\_managed\_policies](#input\_default\_managed\_policies) | List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write | `list(string)` | `[]` | no |
 | <a name="input_enable_key_namespace"></a> [enable\_key\_namespace](#input\_enable\_key\_namespace) | Amended the S3 permissions to write to entire key space i.e <REPOSITORY\_NAME>/* | `bool` | `false` | no |
+| <a name="input_enable_read_only_role"></a> [enable\_read\_only\_role](#input\_enable\_read\_only\_role) | Indicates we should create a read-only role in addition to the read-write role | `bool` | `true` | no |
 | <a name="input_enable_terraform_state"></a> [enable\_terraform\_state](#input\_enable\_terraform\_state) | Indicates we should create the terraform state and lock file permissions | `bool` | `true` | no |
-| <a name="input_force_detach_policies"></a> [force\_detach\_policies](#input\_force\_detach\_policies) | Flag to force detachment of policies attached to the IAM role. | `bool` | `null` | no |
+| <a name="input_force_detach_policies"></a> [force\_detach\_policies](#input\_force\_detach\_policies) | Flag to force detachment of policies attached to the IAM role. | `bool` | `true` | no |
 | <a name="input_permission_boundary"></a> [permission\_boundary](#input\_permission\_boundary) | The name of the policy that is used to set the permissions boundary for the IAM role | `string` | `null` | no |
 | <a name="input_permission_boundary_arn"></a> [permission\_boundary\_arn](#input\_permission\_boundary\_arn) | The full ARN of the permission boundary to attach to the role | `string` | `null` | no |
-| <a name="input_protected_by"></a> [protected\_by](#input\_protected\_by) | The branch, environment and/or tag to protect the role against | <pre>object({<br/>    branch      = optional(string)<br/>    environment = optional(string)<br/>    tag         = optional(string)<br/>  })</pre> | <pre>{<br/>  "branch": "main",<br/>  "environment": "production",<br/>  "tag": "*"<br/>}</pre> | no |
+| <a name="input_protected_by"></a> [protected\_by](#input\_protected\_by) | The branch, environment and/or tag to protect read write role (used when enable\_read\_only\_role is true) | <pre>object({<br/>    branch      = optional(string)<br/>    environment = optional(string)<br/>    tag         = optional(string)<br/>  })</pre> | <pre>{<br/>  "branch": "main",<br/>  "environment": "production",<br/>  "tag": "*"<br/>}</pre> | no |
 | <a name="input_read_only_inline_policies"></a> [read\_only\_inline\_policies](#input\_read\_only\_inline\_policies) | Inline policies map with policy name as key and json as value. | `map(string)` | `{}` | no |
 | <a name="input_read_only_max_session_duration"></a> [read\_only\_max\_session\_duration](#input\_read\_only\_max\_session\_duration) | The maximum session duration (in seconds) that you want to set for the specified role | `number` | `null` | no |
 | <a name="input_read_only_policy_arns"></a> [read\_only\_policy\_arns](#input\_read\_only\_policy\_arns) | List of IAM policy ARNs to attach to the read-only role | `list(string)` | `[]` | no |
@@ -604,11 +607,11 @@ No modules.
 | <a name="input_read_write_max_session_duration"></a> [read\_write\_max\_session\_duration](#input\_read\_write\_max\_session\_duration) | The maximum session duration (in seconds) that you want to set for the specified role | `number` | `null` | no |
 | <a name="input_read_write_policy_arns"></a> [read\_write\_policy\_arns](#input\_read\_write\_policy\_arns) | List of IAM policy ARNs to attach to the read-write role | `list(string)` | `[]` | no |
 | <a name="input_region"></a> [region](#input\_region) | The region in which the role will be used (defaulting to the provider region) | `string` | `null` | no |
-| <a name="input_repositories"></a> [repositories](#input\_repositories) | A collection of repositories to to bind the permissions | `list(string)` | `[]` | no |
-| <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping | `string` | `null` | no |
-| <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `null` | no |
-| <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the remote state | `list(string)` | `[]` | no |
-| <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform statefile, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
+| <a name="input_repositories"></a> [repositories](#input\_repositories) | A collection of repositories to bind the permissions (if empty, the repository variable is used) | `list(string)` | `[]` | no |
+| <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping (used when repositories variable is not set) | `string` | `null` | no |
+| <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `"/"` | no |
+| <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the terraform remote state | `list(string)` | `[]` | no |
+| <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform state file, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
 
 ## Outputs
 

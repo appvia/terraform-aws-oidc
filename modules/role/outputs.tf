@@ -1,7 +1,7 @@
 output "read_only" {
   description = "The ARN of the IAM read-only role"
   value = {
-    arn = aws_iam_role.ro.arn
+    arn = var.enable_read_only_role ? aws_iam_role.ro[0].arn : null
   }
 }
 

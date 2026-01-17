@@ -21,6 +21,12 @@ variable "enable_key_namespace" {
   default     = false
 }
 
+variable "enable_read_only_role" {
+  description = "Indicates we should create a read-only role in addition to the read-write role"
+  type        = bool
+  default     = true
+}
+
 variable "default_managed_policies" {
   description = "List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write"
   type        = list(string)
@@ -71,31 +77,31 @@ variable "additional_audiences" {
 }
 
 variable "tf_state_suffix" {
-  description = "A suffix for the terraform statefile, e.g. <repo>-<tf_state_suffix>.tfstate"
+  description = "A suffix for the terraform state file, e.g. <repo>-<tf_state_suffix>.tfstate"
   type        = string
   default     = ""
 }
 
 variable "repository" {
-  description = "Repository to be allowed in the OIDC federation mapping"
+  description = "Repository to be allowed in the OIDC federation mapping (used when repositories variable is not set)"
   type        = string
   default     = null
 }
 
 variable "repositories" {
-  description = "A collection of repositories to to bind the permissions"
+  description = "A collection of repositories to bind the permissions (if empty, the repository variable is used)"
   type        = list(string)
   default     = []
 }
 
 variable "shared_repositories" {
-  description = "List of repositories to provide read access to the remote state"
+  description = "List of repositories to provide read access to the terraform remote state"
   type        = list(string)
   default     = []
 }
 
 variable "protected_by" {
-  description = "The branch, environment and/or tag to protect the role against"
+  description = "The branch, environment and/or tag to protect read write role (used when enable_read_only_role is true)"
   type = object({
     branch      = optional(string)
     environment = optional(string)
@@ -111,7 +117,7 @@ variable "protected_by" {
 variable "role_path" {
   description = "Path under which to create IAM role."
   type        = string
-  default     = null
+  default     = "/"
 }
 
 variable "read_only_policy_arns" {
@@ -153,7 +159,7 @@ variable "read_write_max_session_duration" {
 variable "force_detach_policies" {
   description = "Flag to force detachment of policies attached to the IAM role."
   type        = bool
-  default     = null
+  default     = true
 }
 
 variable "permission_boundary" {
@@ -169,6 +175,6 @@ variable "permission_boundary_arn" {
 }
 
 variable "tags" {
-  description = "Tags to apply resoures created by this module"
+  description = "Tags to apply resources created by this module"
   type        = map(string)
 }

@@ -1,15 +1,16 @@
-#
-## Read only role - used for terraform plan
-#
-
 locals {
   ## The name of the iam role to create for the readonly - i.e. terraform plans
   readonly_role_name = format("%s-ro", var.name)
+  ## All the inline policies to attach to the read only role
+  read_only_inline_policies = merge(var.read_only_inline_policies, var.default_inline_policies)
+  ## All the read only role managed policy ARNs to attach
+  read_only_policy_arns = toset(concat(var.default_managed_policies, var.read_only_policy_arns))
 }
 
-## Provision the trust policy for the read only role
-data "aws_iam_policy_document" "ro_assume_role" {
+## Provision the trust policy for the read only role (if enabled)
+data "aws_iam_policy_document" "read_only_assume_role" {
   statement {
+    sid     = "AllowAssumeRoleWithWebIdentity"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
@@ -42,11 +43,20 @@ data "aws_iam_policy_document" "ro_assume_role" {
   }
 }
 
+## Craft an IAM policy with the necessary permissions for terraform plan
+data "aws_iam_policy_document" "tfstate_plan" {
+  source_policy_documents = [
+    data.aws_iam_policy_document.base.json,
+  ]
+}
+
 ## Provision a read only role to run terraform plan
 resource "aws_iam_role" "ro" {
+  count = var.enable_read_only_role ? 1 : 0
+
   name                  = local.readonly_role_name
   description           = var.description
-  assume_role_policy    = data.aws_iam_policy_document.ro_assume_role.json
+  assume_role_policy    = data.aws_iam_policy_document.read_only_assume_role.json
   force_detach_policies = var.force_detach_policies
   max_session_duration  = var.read_only_max_session_duration
   path                  = var.role_path
@@ -56,26 +66,26 @@ resource "aws_iam_role" "ro" {
 
 ## Create an inline policy for the read only role
 resource "aws_iam_role_policy" "tfstate_plan_ro" {
-  count = var.enable_terraform_state ? 1 : 0
+  count = var.enable_read_only_role && var.enable_terraform_state ? 1 : 0
 
   name   = "tfstate_plan"
-  role   = aws_iam_role.ro.id
+  role   = aws_iam_role.ro[0].id
   policy = data.aws_iam_policy_document.tfstate_plan.json
 }
 
 ## Provision the inline policies for the read only role
 resource "aws_iam_role_policy" "inline_policies_ro" {
-  for_each = merge(var.read_only_inline_policies, var.default_inline_policies)
+  for_each = var.enable_read_only_role ? local.read_only_inline_policies : {}
 
   name   = each.key
-  role   = aws_iam_role.ro.id
+  role   = aws_iam_role.ro[0].id
   policy = each.value
 }
 
 ## Attach the managed policies to the read only role
 resource "aws_iam_role_policy_attachment" "ro" {
-  for_each = toset(concat(var.default_managed_policies, var.read_only_policy_arns))
+  for_each = var.enable_read_only_role ? local.read_only_policy_arns : toset([])
 
   policy_arn = each.key
-  role       = aws_iam_role.ro.name
+  role       = aws_iam_role.ro[0].name
 }
