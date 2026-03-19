@@ -18,8 +18,28 @@ data "aws_iam_policy_document" "read_write_assume_role" {
       values   = concat(local.selected_provider.audiences, var.additional_audiences)
     }
 
+    ## When the enable_read_only_role is false we permit all branches access to the
+    ## assume the role
     dynamic "condition" {
-      for_each = toset(local.repositories)
+      for_each = var.enable_read_only_role == false ? toset(local.repositories) : toset([])
+
+      content {
+        test     = "StringLike"
+        variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
+        values = [
+          format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
+              repo = condition.value
+            }[v]
+          ]...)
+        ]
+      }
+    }
+
+    ## When the enable_read_only_role is true we need to protect the role by using a
+    ## branch, tag or environment
+    dynamic "condition" {
+      for_each = var.enable_read_only_role == true ? toset(local.repositories) : toset([])
 
       content {
         test     = "StringLike"
