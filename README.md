@@ -126,6 +126,41 @@ module "common_provider_example" {
 }
 ```
 
+Azure DevOps Pipelines is also supported as a common provider. Its OIDC issuer URL is
+organisation-specific (unlike GitHub/GitLab's fixed URLs), so an `azuredevops_organization_id`
+must be supplied, and `repository` takes the form `{organisation}/{project}/{service-connection}`:
+
+```hcl
+module "azuredevops_provider_example" {
+  source  = "appvia/oidc/aws//modules/role"
+  version = "0.0.16"
+
+  name        = "test-azuredevops-role"
+  description = "Creates a role using the Azure DevOps OIDC provider"
+
+  common_provider              = "azuredevops"
+  azuredevops_organization_id  = "00000000-0000-0000-0000-000000000000"
+  repository                   = "my-org/my-project/aws-oidc-service-connection"
+
+  permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+  read_write_policy_arns = [
+    "arn:aws:iam::aws:policy/AdministratorAccess",
+  ]
+
+  tags = {
+    Name = "Example Azure DevOps Provider"
+  }
+}
+```
+
+> **Note:** Azure DevOps' OIDC subject claim identifies only the organisation/project/service
+> connection, with no branch, tag, or environment information — so `protected_by` cannot restrict
+> the read-write role by branch/tag/environment for this provider. Create a dedicated service
+> connection (and a separate module invocation) per protection boundary you need, and use Azure
+> DevOps' own service connection pipeline permissions and environment approvals to control which
+> pipelines may use each one. See [`modules/role`](modules/role) for details.
+
 ### Remote State Reader
 
 ```hcl

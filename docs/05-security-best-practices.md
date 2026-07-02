@@ -212,6 +212,54 @@ data "aws_iam_policy_document" "secure_github_trust" {
 }
 ```
 
+### Azure DevOps: Service-Connection-Scoped Trust
+
+**This is a deliberate deviation from the branch/environment/tag protection pattern used for GitHub/GitLab, driven by a protocol constraint, not a module limitation.**
+
+Azure DevOps workload identity federation issues an OIDC token whose `sub` claim only ever identifies the service connection being used — `sc://{organisation}/{project}/{service-connection}`. It does not include the branch, tag, ref, or environment that triggered the pipeline. Consequently, the `protected_by` variable (`branch`/`environment`/`tag`) has **no effect** when `common_provider = "azuredevops"`: there is no additional claim data available to differentiate a pipeline run from any other run using the same service connection.
+
+To stop a single service connection from being able to assume both roles, the module suffixes the read-only role's expected subject with `-ro` (mirroring `{name}-ro`, the read-only role's own name suffix) — so `repository = "myorg/myproject/aws-oidc-sc"` produces a read-write trust of `sc://myorg/myproject/aws-oidc-sc` and a read-only trust of `sc://myorg/myproject/aws-oidc-sc-ro`. This means **the read-only role requires its own, separately configured Azure DevOps service connection named with that `-ro` suffix** — if it doesn't exist, plan pipelines using the read-only role will fail to assume it.
+
+```hcl
+# Azure DevOps trust policy — the subject condition cannot vary by branch/tag/environment
+data "aws_iam_policy_document" "secure_azuredevops_trust" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.azuredevops.arn]
+    }
+
+    # Validate audience
+    condition {
+      test     = "StringEquals"
+      variable = "vstoken.dev.azure.com/00000000-0000-0000-0000-000000000000:aud"
+      values   = ["api://AzureADTokenExchange"]
+    }
+
+    # Validate the service connection — this is the ONLY thing AWS can check;
+    # it cannot distinguish which branch/environment triggered the pipeline.
+    # StringEquals (not StringLike) is used because the subject carries no
+    # wildcard-able segment, and Terraform merges it with the StringEquals
+    # audience condition above into a single Condition block.
+    condition {
+      test     = "StringEquals"
+      variable = "vstoken.dev.azure.com/00000000-0000-0000-0000-000000000000:sub"
+      values   = ["sc://myorg/myproject/aws-prod-sc"]
+    }
+  }
+}
+```
+
+**Mitigation — enforce protection in Azure DevOps, not in the trust policy:**
+
+1. Create the two service connections the module now expects: `aws-oidc-sc` (or whatever `repository` you pass) for the read-write role, and `aws-oidc-sc-ro` for the read-only role.
+2. In Azure DevOps, restrict each service connection's **pipeline permissions** to only the specific pipelines that should be able to use it, and require **environment approvals/checks** for any pipeline stage that uses the read-write service connection.
+3. For protection boundaries beyond the rw/ro split (e.g. separate `prod`/`dev` service connections), invoke this module once per boundary, passing each as a distinct `repository` (e.g. `"myorg/myproject/aws-prod-sc"` vs `"myorg/myproject/aws-dev-sc"`) — this reuses the module's existing multi-role pattern instead of `protected_by`, which is meaningless for this provider.
+
+Do not assume `protected_by` is silently enforcing branch protection for Azure DevOps roles — audit any Azure DevOps role configuration that sets `protected_by` and confirm the intended protection is actually enforced via Azure DevOps service connection permissions instead.
+
 ### Environment-Specific Protection
 
 ```hcl

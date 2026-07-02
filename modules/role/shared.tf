@@ -17,31 +17,53 @@ data "aws_iam_policy_document" "tfstate_remote" {
 
 ## Craft the trust policy for the state reader role
 data "aws_iam_policy_document" "sr_assume_role" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+  ## Spoke roles (chained into from the primary account) are only reachable via the primary
+  ## role's sts:AssumeRole below, so they skip the direct OIDC trust statement entirely
+  dynamic "statement" {
+    for_each = local.is_spoke_role ? [] : [1]
 
-    principals {
-      type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+    content {
+      actions = ["sts:AssumeRoleWithWebIdentity"]
+
+      principals {
+        type        = "Federated"
+        identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
+        values   = concat(local.selected_provider.audiences, var.additional_audiences)
+      }
+
+      condition {
+        test     = local.selected_provider.subject_condition_test
+        variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
+        values = [
+          for repo in var.shared_repositories :
+          format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
+              repo = repo
+            }[v]
+          ]...)
+        ]
+      }
     }
+  }
 
-    condition {
-      test     = "StringEquals"
-      variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
-      values   = concat(local.selected_provider.audiences, var.additional_audiences)
-    }
+  ## Allow the counterpart state-reader role in the primary (Azure DevOps hub) account to
+  ## assume this role, chaining cross-account access from the hub's OIDC-federated role
+  dynamic "statement" {
+    for_each = contains(keys(local.primary_role_arns), "sr") ? [1] : []
 
-    condition {
-      test     = "StringLike"
-      variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
-      values = [
-        for repo in var.shared_repositories :
-        format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-          for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
-            repo = repo
-          }[v]
-        ]...)
-      ]
+    content {
+      sid     = "AllowPrimaryRoleAssume"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = [local.primary_role_arns["sr"]]
+      }
     }
   }
 }
@@ -63,5 +85,25 @@ resource "aws_iam_role_policy" "sr" {
 
   name   = "tfstate_remote"
   policy = data.aws_iam_policy_document.tfstate_remote.json
+  role   = aws_iam_role.sr[0].id
+}
+
+## Grant the primary role permission to assume its counterpart state-reader role in any spoke
+## account (the trust side of this is the spoke's own trust policy - see local.primary_role_arns)
+data "aws_iam_policy_document" "allow_primary_assume_role_sr" {
+  count = local.is_primary_role && local.enable_state_reader ? 1 : 0
+
+  statement {
+    sid       = "AllowPrimaryAssumeRole"
+    actions   = ["sts:AssumeRole"]
+    resources = [format("arn:aws:iam::*:role/%s", local.state_reader_role_name)]
+  }
+}
+
+resource "aws_iam_role_policy" "allow_primary_assume_role_sr" {
+  count = local.is_primary_role && local.enable_state_reader ? 1 : 0
+
+  name   = "allow_primary_assume_role"
+  policy = data.aws_iam_policy_document.allow_primary_assume_role_sr[0].json
   role   = aws_iam_role.sr[0].id
 }

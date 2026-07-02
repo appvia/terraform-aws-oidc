@@ -145,12 +145,12 @@ run "enable_read_only_role_with_branch_protection" {
   }
 
   variables {
-    name                    = "rw-with-branch-protection"
-    description             = "Test with read-only role enabled and branch protection"
-    repository              = "appvia/terraform-aws-oidc"
-    common_provider         = "github"
-    enable_read_only_role   = true
-    enable_terraform_state  = true
+    name                   = "rw-with-branch-protection"
+    description            = "Test with read-only role enabled and branch protection"
+    repository             = "appvia/terraform-aws-oidc"
+    common_provider        = "github"
+    enable_read_only_role  = true
+    enable_terraform_state = true
     protected_by = {
       branch      = "main"
       environment = null
@@ -282,4 +282,82 @@ run "disable_read_only_role_with_custom_provider" {
     condition     = can(jsondecode(resource.aws_iam_role.rw.assume_role_policy))
     error_message = "Trust policy should be valid JSON with custom provider"
   }
+}
+
+run "explicit_trust_policy_override" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name        = "explicit-trust-policy"
+    description = "Test an explicit trust policy applied verbatim to all roles"
+    repository  = "appvia/terraform-aws-oidc"
+
+    // The generated trust policy (driven by common_provider) is ignored in favour
+    // of this explicit document for all three roles.
+    trust_policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Sid       = "ExplicitTrust"
+          Effect    = "Allow"
+          Action    = "sts:AssumeRoleWithWebIdentity"
+          Principal = { Federated = "arn:aws:iam::123456789012:oidc-provider/example.com" }
+        },
+      ]
+    })
+
+    enable_read_only_role   = true
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    shared_repositories     = ["appvia/repo-1"]
+    tags = {
+      Name = "Explicit-Trust-Policy"
+    }
+  }
+
+  // The explicit trust policy should be used verbatim for the read-write role
+  assert {
+    condition     = jsondecode(resource.aws_iam_role.rw.assume_role_policy).Statement[0].Sid == "ExplicitTrust"
+    error_message = "Read-write role should use the explicit trust_policy verbatim"
+  }
+
+  // The explicit trust policy should be used verbatim for the read-only role
+  assert {
+    condition     = jsondecode(resource.aws_iam_role.ro[0].assume_role_policy).Statement[0].Sid == "ExplicitTrust"
+    error_message = "Read-only role should use the explicit trust_policy verbatim"
+  }
+
+  // The explicit trust policy should be used verbatim for the state reader role
+  assert {
+    condition     = jsondecode(resource.aws_iam_role.sr[0].assume_role_policy).Statement[0].Sid == "ExplicitTrust"
+    error_message = "State reader role should use the explicit trust_policy verbatim"
+  }
+}
+
+run "explicit_trust_policy_invalid_json" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "invalid-trust-policy"
+    description             = "Test an invalid explicit trust policy is rejected"
+    repository              = "appvia/terraform-aws-oidc"
+    trust_policy            = "{ not valid json"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    tags = {
+      Name = "Invalid-Trust-Policy"
+    }
+  }
+
+  expect_failures = [
+    var.trust_policy,
+  ]
 }
