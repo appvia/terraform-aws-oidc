@@ -78,6 +78,7 @@ graph TB
 **Supported Providers**:
 - **GitHub Actions**: `https://token.actions.githubusercontent.com`
 - **GitLab CI**: `https://gitlab.com` (or enterprise instances)
+- **Azure DevOps Pipelines**: `https://vstoken.dev.azure.com/{organization_id}` (organisation-specific, unlike the fixed GitHub/GitLab URLs)
 - **Bitbucket Pipelines**: `https://api.bitbucket.org/2.0/workspaces/{workspace}/pipelines-config/identity/oidc`
 
 **Key Features**:
@@ -529,6 +530,28 @@ gitlab = {
 **Example Pattern Generation:**
 - Input: `repository = "mygroup/myproject"`, `protected_by.branch = "production"`
 - Generated: `"project_path:mygroup/myproject:ref_type:branch:ref:production"`
+
+#### Azure DevOps Templates
+```hcl
+azuredevops = {
+  # Azure DevOps subjects are scoped to a service connection only
+  # (org/project/service-connection). There is no branch, tag or
+  # environment claim, so every mapping template resolves identically.
+  subject_reader_mapping = "sc://{repo}"
+  subject_branch_mapping = "sc://{repo}"
+  subject_env_mapping    = "sc://{repo}"
+  subject_tag_mapping    = "sc://{repo}"
+}
+```
+
+**Example Pattern Generation:**
+- Input: `repository = "myorg/myproject/aws-oidc-sc"`
+- Generated (read-write role): `"sc://myorg/myproject/aws-oidc-sc"`
+- Generated (read-only role): `"sc://myorg/myproject/aws-oidc-sc-ro"` — the module suffixes the read-only role's expected subject with `-ro` (mirroring the `{name}-ro` role name), so a distinct, dedicated service connection is required for the read-only role. Without this, both roles would trust the exact same subject and either could be assumed by the same service connection.
+
+**Deviation from the GitHub/GitLab pattern — and why:** For GitHub/GitLab, `subject_branch_mapping`/`subject_env_mapping`/`subject_tag_mapping` each produce a *different* subject string, so the module can restrict the read-write role's trust policy to a specific branch, environment, or tag (via `protected_by`). Azure DevOps' workload identity federation subject is fundamentally different — it identifies the *service connection* used by the pipeline, and never includes branch/ref/environment information in the token. There is no subject string this module could generate that would let AWS itself distinguish "main branch" from "any other branch" for a given Azure DevOps service connection. This is a protocol-level constraint, not a gap in the templating mechanism; the `-ro` suffix only separates the read-only role from the read-write role, not branches/environments/tags within either.
+
+**Recommended mitigation**: beyond the `-ro`-suffixed service connection the module already requires, create one further Azure DevOps service connection per additional protection boundary you need (e.g. `aws-prod-sc` for production, `aws-dev-sc` for everything else), restrict which pipelines/branches/environments may use each service connection using Azure DevOps' own [service connection pipeline permissions and environment approvals](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals), and invoke this module once per service connection with a distinct `repository` value (e.g. `"myorg/myproject/aws-prod-sc"` and `"myorg/myproject/aws-dev-sc"`) — reusing the module's existing multi-repository/multi-role pattern instead of relying on `protected_by`.
 
 #### Bitbucket Templates
 ```hcl

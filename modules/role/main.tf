@@ -5,69 +5,93 @@ locals {
 
 ## Craft the trust policy for the read write role
 data "aws_iam_policy_document" "read_write_assume_role" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    principals {
-      type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.this.arn]
-    }
+  ## Spoke roles (chained into from the primary account) are only reachable via the primary
+  ## role's sts:AssumeRole below, so they skip the direct OIDC trust statement entirely
+  dynamic "statement" {
+    for_each = local.is_spoke_role ? [] : [1]
 
-    condition {
-      test     = "StringEquals"
-      variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
-      values   = concat(local.selected_provider.audiences, var.additional_audiences)
-    }
+    content {
+      actions = ["sts:AssumeRoleWithWebIdentity"]
+      principals {
+        type        = "Federated"
+        identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+      }
 
-    ## When the enable_read_only_role is false we permit all branches access to the
-    ## assume the role
-    dynamic "condition" {
-      for_each = var.enable_read_only_role == false ? toset(local.repositories) : toset([])
+      condition {
+        test     = "StringEquals"
+        variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
+        values   = concat(local.selected_provider.audiences, var.additional_audiences)
+      }
 
-      content {
-        test     = "StringLike"
-        variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
-        values = [
-          format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
-              repo = condition.value
-            }[v]
-          ]...)
-        ]
+      ## When the enable_read_only_role is false we permit all branches access to the
+      ## assume the role
+      dynamic "condition" {
+        for_each = var.enable_read_only_role == false ? toset(local.repositories) : toset([])
+
+        content {
+          test     = local.selected_provider.subject_condition_test
+          variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
+          values = [
+            format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+              for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
+                repo = condition.value
+              }[v]
+            ]...)
+          ]
+        }
+      }
+
+      ## When the enable_read_only_role is true we need to protect the role by using a
+      ## branch, tag or environment
+      dynamic "condition" {
+        for_each = var.enable_read_only_role == true ? toset(local.repositories) : toset([])
+
+        content {
+          test     = local.selected_provider.subject_condition_test
+          variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
+          ## distinct() collapses providers (e.g. Azure DevOps) whose branch/env/tag mapping
+          ## templates are all identical, so the same subject isn't repeated in the condition
+          values = distinct(compact([
+            var.protected_by.branch != null ? format(replace(local.selected_provider.subject_branch_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+              for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_branch_mapping)) : {
+                repo = condition.value
+                type = "branch"
+                ref  = var.protected_by.branch
+              }[v]
+            ]...) : "",
+
+            var.protected_by.environment != null ? format(replace(local.selected_provider.subject_env_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+              for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_env_mapping)) : {
+                repo = condition.value
+                env  = var.protected_by.environment
+              }[v]
+            ]...) : "",
+
+            var.protected_by.tag != null ? format(replace(local.selected_provider.subject_tag_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+              for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_tag_mapping)) : {
+                repo = condition.value
+                type = "tag"
+                ref  = var.protected_by.tag
+              }[v]
+            ]...) : ""
+          ]))
+        }
       }
     }
+  }
 
-    ## When the enable_read_only_role is true we need to protect the role by using a
-    ## branch, tag or environment
-    dynamic "condition" {
-      for_each = var.enable_read_only_role == true ? toset(local.repositories) : toset([])
+  ## Allow the counterpart read-write role in the primary (Azure DevOps hub) account to
+  ## assume this role, chaining cross-account access from the hub's OIDC-federated role
+  dynamic "statement" {
+    for_each = contains(keys(local.primary_role_arns), "rw") ? [1] : []
 
-      content {
-        test     = "StringLike"
-        variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
-        values = compact([
-          var.protected_by.branch != null ? format(replace(local.selected_provider.subject_branch_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_branch_mapping)) : {
-              repo = condition.value
-              type = "branch"
-              ref  = var.protected_by.branch
-            }[v]
-          ]...) : "",
+    content {
+      sid     = "AllowPrimaryRoleAssume"
+      actions = ["sts:AssumeRole"]
 
-          var.protected_by.environment != null ? format(replace(local.selected_provider.subject_env_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_env_mapping)) : {
-              repo = condition.value
-              env  = var.protected_by.environment
-            }[v]
-          ]...) : "",
-
-          var.protected_by.tag != null ? format(replace(local.selected_provider.subject_tag_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_tag_mapping)) : {
-              repo = condition.value
-              type = "tag"
-              ref  = var.protected_by.tag
-            }[v]
-          ]...) : ""
-        ])
+      principals {
+        type        = "AWS"
+        identifiers = [local.primary_role_arns["rw"]]
       }
     }
   }
@@ -126,4 +150,24 @@ resource "aws_iam_role_policy_attachment" "rw" {
 
   policy_arn = each.key
   role       = aws_iam_role.rw.name
+}
+
+## Grant the primary role permission to assume its counterpart read-write role in any spoke
+## account (the trust side of this is the spoke's own trust policy - see local.primary_role_arns)
+data "aws_iam_policy_document" "allow_primary_assume_role_rw" {
+  count = local.is_primary_role ? 1 : 0
+
+  statement {
+    sid       = "AllowPrimaryAssumeRole"
+    actions   = ["sts:AssumeRole"]
+    resources = [format("arn:aws:iam::*:role/%s", local.read_write_role_name)]
+  }
+}
+
+resource "aws_iam_role_policy" "allow_primary_assume_role_rw" {
+  count = local.is_primary_role ? 1 : 0
+
+  name   = "allow_primary_assume_role"
+  policy = data.aws_iam_policy_document.allow_primary_assume_role_rw[0].json
+  role   = aws_iam_role.rw.id
 }

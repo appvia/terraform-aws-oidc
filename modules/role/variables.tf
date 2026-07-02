@@ -54,6 +54,33 @@ variable "common_provider" {
   description = "The name of a common OIDC provider to be used as the trust for the role"
   type        = string
   default     = "github"
+
+  validation {
+    condition     = contains(["github", "gitlab", "azuredevops"], var.common_provider)
+    error_message = "Allowed values for common_provider are github, gitlab or azuredevops."
+  }
+
+  validation {
+    condition     = !(var.common_provider == "azuredevops" && var.custom_provider == null && var.azuredevops_organization_id == null)
+    error_message = "azuredevops_organization_id must be set when common_provider is 'azuredevops' and custom_provider is not set."
+  }
+}
+
+variable "azuredevops_organization_id" {
+  description = "The Azure DevOps organization ID (GUID, found under Organization Settings) used to build the OIDC issuer URL (https://vstoken.dev.azure.com/<organization_id>). Required when common_provider is 'azuredevops' and custom_provider is not set. Pass the repository/repositories variables as '<organisation-name>/<project-name>/<service-connection-name>'."
+  type        = string
+  default     = null
+}
+
+variable "azuredevops_primary_role_account_id" {
+  description = "Account ID of the 'primary' role set (matching this module's role names) that Azure DevOps federates into directly via OIDC. When set, an additional trust statement is added to each role created here (read-write, read-only, state reader) allowing its counterpart in that account to assume it via sts:AssumeRole. Used to chain from a hub account (where the Azure DevOps OIDC provider/service connections are configured) into spoke accounts, e.g. a finops account role trusting the equivalent management-account role. Only valid when common_provider is 'azuredevops', since GitHub/GitLab OIDC providers are configured per-account and don't need this chaining."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.azuredevops_primary_role_account_id == null || var.common_provider == "azuredevops"
+    error_message = "azuredevops_primary_role_account_id can only be set when common_provider is 'azuredevops'."
+  }
 }
 
 variable "custom_provider" {
@@ -65,6 +92,7 @@ variable "custom_provider" {
     subject_branch_mapping = string
     subject_env_mapping    = string
     subject_tag_mapping    = string
+    subject_condition_test = optional(string, "StringLike")
   })
 
   default = null

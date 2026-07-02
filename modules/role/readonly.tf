@@ -5,39 +5,67 @@ locals {
   read_only_inline_policies = merge(var.read_only_inline_policies, var.default_inline_policies)
   ## All the read only role managed policy ARNs to attach
   read_only_policy_arns = toset(concat(var.default_managed_policies, var.read_only_policy_arns))
+  ## Azure DevOps has no branch/tag/environment claim to separate the read-only role's trust
+  ## from the read-write role's (see locals.common_providers.azuredevops), so without this the
+  ## same service connection would be trusted by both roles. Suffixing with '-ro' (mirroring
+  ## readonly_role_name) requires a dedicated Azure DevOps service connection for the read-only
+  ## role, giving real separation between plan and apply pipelines.
+  readonly_repositories = var.common_provider == "azuredevops" ? [for repo in local.repositories : format("%s-ro", repo)] : local.repositories
 }
 
 ## Provision the trust policy for the read only role (if enabled)
 data "aws_iam_policy_document" "read_only_assume_role" {
-  statement {
-    sid     = "AllowAssumeRoleWithWebIdentity"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+  ## Spoke roles (chained into from the primary account) are only reachable via the primary
+  ## role's sts:AssumeRole below, so they skip the direct OIDC trust statement entirely
+  dynamic "statement" {
+    for_each = local.is_spoke_role ? [] : [1]
 
-    principals {
-      type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+    content {
+      sid     = "AllowAssumeRoleWithWebIdentity"
+      actions = ["sts:AssumeRoleWithWebIdentity"]
+
+      principals {
+        type        = "Federated"
+        identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
+        values   = concat(local.selected_provider.audiences, var.additional_audiences)
+      }
+
+      ## Support the repositories variable
+      dynamic "condition" {
+        for_each = toset(local.readonly_repositories)
+
+        content {
+          test     = local.selected_provider.subject_condition_test
+          variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
+          values = [
+            format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
+              for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
+                repo = condition.value
+              }[v]
+            ]...)
+          ]
+        }
+      }
     }
+  }
 
-    condition {
-      test     = "StringEquals"
-      variable = format("%s:aud", trimprefix(local.selected_provider.url, "https://"))
-      values   = concat(local.selected_provider.audiences, var.additional_audiences)
-    }
+  ## Allow the counterpart read-only role in the primary (Azure DevOps hub) account to
+  ## assume this role, chaining cross-account access from the hub's OIDC-federated role
+  dynamic "statement" {
+    for_each = contains(keys(local.primary_role_arns), "ro") ? [1] : []
 
-    ## Support the repositories variable
-    dynamic "condition" {
-      for_each = toset(local.repositories)
+    content {
+      sid     = "AllowPrimaryRoleAssume"
+      actions = ["sts:AssumeRole"]
 
-      content {
-        test     = "StringLike"
-        variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
-        values = [
-          format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
-            for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
-              repo = condition.value
-            }[v]
-          ]...)
-        ]
+      principals {
+        type        = "AWS"
+        identifiers = [local.primary_role_arns["ro"]]
       }
     }
   }
@@ -88,4 +116,24 @@ resource "aws_iam_role_policy_attachment" "ro" {
 
   policy_arn = each.key
   role       = aws_iam_role.ro[0].name
+}
+
+## Grant the primary role permission to assume its counterpart read-only role in any spoke
+## account (the trust side of this is the spoke's own trust policy - see local.primary_role_arns)
+data "aws_iam_policy_document" "allow_primary_assume_role_ro" {
+  count = local.is_primary_role && var.enable_read_only_role ? 1 : 0
+
+  statement {
+    sid       = "AllowPrimaryAssumeRole"
+    actions   = ["sts:AssumeRole"]
+    resources = [format("arn:aws:iam::*:role/%s", local.readonly_role_name)]
+  }
+}
+
+resource "aws_iam_role_policy" "allow_primary_assume_role_ro" {
+  count = local.is_primary_role && var.enable_read_only_role ? 1 : 0
+
+  name   = "allow_primary_assume_role"
+  policy = data.aws_iam_policy_document.allow_primary_assume_role_ro[0].json
+  role   = aws_iam_role.ro[0].id
 }

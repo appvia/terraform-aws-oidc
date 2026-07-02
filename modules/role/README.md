@@ -12,7 +12,7 @@ Modern CI/CD pipelines require secure access to AWS resources without storing lo
 
 - Eliminates the need for long-term AWS credentials in CI/CD systems
 - Provides granular access control based on repository, branch, environment, and tag context
-- Supports multiple source control providers (GitHub, GitLab)
+- Supports multiple source control providers (GitHub, GitLab, Azure DevOps)
 - Enables secure cross-repository state sharing for complex infrastructure
 - Implements least-privilege access with permission boundaries
 
@@ -30,7 +30,10 @@ This module provides a complete OIDC-based authentication solution that creates 
 
 - **GitHub Actions**: Native support with `token.actions.githubusercontent.com`
 - **GitLab CI/CD**: Integration with GitLab's OIDC provider
+- **Azure DevOps Pipelines**: Integration with Azure DevOps workload identity federation, trusting a specific service connection (`sc://{organisation}/{project}/{service-connection}`)
 - **Custom Providers**: Flexible configuration for any OIDC-compliant provider
+
+> **Azure DevOps deviates from the branch/environment/tag protection pattern.** Unlike GitHub/GitLab, Azure DevOps' OIDC subject claim identifies only the organisation/project/service connection — it carries no branch, tag, or environment information. As a result, `protected_by` cannot restrict the read-write role to a specific branch/tag/environment for Azure DevOps; the same subject is trusted regardless. To achieve equivalent protection, create a **dedicated service connection per protection boundary** (e.g. `aws-prod-sc`, `aws-dev-sc`), restrict each service connection to specific pipelines/environments using Azure DevOps' own [service connection pipeline permissions and environment approvals](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals), and pass each as a separate `repository` value to a separate invocation of this module. This is a protocol-level constraint of Azure DevOps' workload identity federation, not a limitation of this module.
 
 ### 🛡️ **Advanced Security Controls**
 
@@ -126,10 +129,11 @@ sequenceDiagram
 
 ## Supported Source Control Providers
 
-| Provider      | OIDC URL                                                                              | Audience                                | Subject Mapping         |
-| ------------- | ------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------- |
-| **GitHub**    | `https://token.actions.githubusercontent.com`                                         | `sts.amazonaws.com`                     | `repo:{repo}:*`         |
-| **GitLab**    | `https://gitlab.com`                                                                  | `https://gitlab.com`                    | `project_path:{repo}:*` |
+| Provider          | OIDC URL                                            | Audience                     | Subject Mapping             |
+| ----------------- | ---------------------------------------------------- | ----------------------------- | ---------------------------- |
+| **GitHub**        | `https://token.actions.githubusercontent.com`        | `sts.amazonaws.com`           | `repo:{repo}:*`               |
+| **GitLab**        | `https://gitlab.com`                                 | `https://gitlab.com`          | `project_path:{repo}:*`       |
+| **Azure DevOps**  | `https://vstoken.dev.azure.com/{organization_id}`    | `api://AzureADTokenExchange`  | `sc://{repo}` (`{repo}` = `{organisation}/{project}/{service-connection}`) |
 
 ## Usage
 
@@ -163,6 +167,109 @@ module "terraform_roles" {
     Project     = "infrastructure"
     Owner       = "platform-team"
   }
+}
+```
+
+### **Basic Usage - Azure DevOps Pipelines**
+
+This example demonstrates the basic setup for Azure DevOps Pipelines using a workload identity federation service connection. The `repository` value is the `{organisation}/{project}/{service-connection}` triple, mirroring how `{owner}/{repo}` is used for GitHub. `azuredevops_organization_id` is the organisation's GUID (Organization Settings > General), which is required because — unlike GitHub/GitLab's fixed URLs — Azure DevOps' OIDC issuer URL is per-organisation.
+
+```hcl
+module "terraform_roles_azuredevops" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "terraform-ci-cd"
+  description = "IAM roles for Azure DevOps Terraform pipeline"
+
+  common_provider              = "azuredevops"
+  azuredevops_organization_id  = "00000000-0000-0000-0000-000000000000"
+  repository                   = "my-org/my-project/aws-oidc-service-connection"
+
+  # Permission boundary for security
+  permission_boundary = "TerraformExecutionBoundary"
+
+  read_write_policy_arns = [
+    "arn:aws:iam::aws:policy/PowerUserAccess"
+  ]
+
+  tags = {
+    Environment = "production"
+    Project     = "infrastructure"
+    Owner       = "platform-team"
+  }
+}
+```
+
+> Because Azure DevOps' OIDC subject only identifies the service connection (not a branch/tag/environment), `protected_by` has no effect for this provider. Use a separate service connection — and a separate invocation of this module — per protection boundary you need (e.g. one for `main`/production deployments, one for feature-branch validation), and rely on Azure DevOps' own [service connection pipeline permissions and environment approvals](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals) to control which pipelines/branches may use each service connection.
+
+### **Azure DevOps Multi-Account Access - Hub/Spoke Role Chaining**
+
+> **This pattern is specific to Azure DevOps and has no effect for GitHub or GitLab.** `azuredevops_primary_role_account_id` is validated to only be settable when `common_provider = "azuredevops"` — setting it (or anything it drives, such as the `allow_primary_assume_role` policy) is impossible for GitHub/GitLab roles. Those providers don't need this pattern in the first place: a GitHub Actions/GitLab CI job can request a fresh OIDC token from any step and federate directly into as many accounts/roles as needed, so the normal approach of one OIDC provider + federated role per account still applies unchanged for them.
+
+Azure DevOps pipelines commonly need to reach more than one AWS account (e.g. a `management` account plus a `finops` account). With GitHub/GitLab, the natural approach is to configure an OIDC provider and federated role directly in every account the pipeline touches, since a GitHub Actions/GitLab CI job can request a fresh OIDC token as many times as it needs, from any step, to call `sts:AssumeRoleWithWebIdentity` against a different account each time.
+
+**Azure DevOps cannot do this.** A service connection's workload identity federation token is exchanged once, by the pipeline task/step that uses that service connection (e.g. the `AWSShellScript`/Terraform task bound to it) — the token itself isn't a first-class artifact the pipeline can pass to a second, different `AssumeRoleWithWebIdentity` call against another role or account within the same authenticated task. There is no persisted OIDC token on the agent that a later step can re-reference to federate into a second role directly. Practically, that rules out "one service connection, directly federated into N roles across N accounts."
+
+Instead, this module supports **hub-and-spoke role chaining** via `azuredevops_primary_role_account_id`:
+
+- Deploy one "primary" (hub) invocation of this module in the account Azure DevOps federates into directly (e.g. `management`) — a normal Azure DevOps role, OIDC-trusted as usual.
+- Deploy further "spoke" invocations of this module in every other account the pipeline needs (e.g. `finops`), passing `azuredevops_primary_role_account_id` set to the hub account's ID.
+
+For each spoke invocation, the module detects (by comparing `azuredevops_primary_role_account_id` against the account the role is being created in) which side of the relationship it's building, and adjusts both roles accordingly — no extra flags needed:
+
+- **On the spoke role**: the direct OIDC (`sts:AssumeRoleWithWebIdentity`) trust statement is dropped entirely, and replaced with a trust statement for the hub's counterpart role (matched by name — the spoke's `{name}`/`{name}-ro`/`{name}-sr` trusts the hub's role of the same name) to assume it via a plain, non-federated `sts:AssumeRole`.
+- **On the hub role**: an inline `allow_primary_assume_role` permissions policy is attached, granting `sts:AssumeRole` on `arn:aws:iam::*:role/{name}` (account ID wildcarded, since the hub role may need to reach any number of spoke accounts) — this is what actually lets the hub role call `sts:AssumeRole` into the spokes that trust it.
+
+> **Security note — account ID wildcard in `allow_primary_assume_role`.** The hub role's identity policy grants `sts:AssumeRole` on `arn:aws:iam::*:role/{name}` — the account ID segment is wildcarded because this module has no visibility into which accounts will host spoke roles, so it can't enumerate them up front. In practice this is not directly exploitable: `sts:AssumeRole` also requires the **target** role's own trust policy to permit the caller, and every spoke role this module creates only trusts the exact hub role ARN (see above) — so the hub can only actually assume roles that were deliberately configured to trust it, regardless of how broad its own identity policy looks. That said, the statement itself is broader than strictly necessary for a specific set of known spoke accounts, and some IAM Access Analyzer / SCP audits will flag a wildcarded account ID in an `sts:AssumeRole` resource ARN as a finding requiring justification — if you operate under such a policy, document this as an accepted, deliberate trade-off (or scope your own additional guardrail, e.g. an SCP restricting which account IDs the hub role may actually reach).
+
+At pipeline runtime, this means: the Azure DevOps task authenticates once (via OIDC) into the hub role, and from there uses ordinary AWS credential chaining (`sts:AssumeRole` with the hub role's own credentials, not a second OIDC exchange) to reach every spoke account — which is exactly what a single authenticated task session in Azure DevOps *can* do, any number of times, with any number of target roles/accounts.
+
+```hcl
+# Hub role - deployed in the management account, federates via Azure DevOps OIDC as normal
+module "terraform_roles_hub" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "terraform-ci-cd"
+  description = "Hub role - federates via Azure DevOps OIDC directly"
+
+  common_provider              = "azuredevops"
+  azuredevops_organization_id  = "00000000-0000-0000-0000-000000000000"
+  repository                   = "my-org/my-project/aws-oidc-service-connection"
+
+  # Matches this role's own account - marks it as the primary/hub, not a spoke,
+  # and attaches the allow_primary_assume_role policy needed to chain into spokes
+  azuredevops_primary_role_account_id = "111111111111" # management account ID
+
+  permission_boundary = "TerraformExecutionBoundary"
+  read_write_policy_arns = ["arn:aws:iam::aws:policy/PowerUserAccess"]
+
+  tags = { Owner = "platform-team" }
+
+  providers = { aws = aws.management }
+}
+
+# Spoke role - deployed in a second account the pipeline needs to reach.
+# No OIDC provider/service connection required in this account at all.
+module "terraform_roles_spoke" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "terraform-ci-cd"
+  description = "Spoke role - only reachable via the hub role's sts:AssumeRole"
+
+  common_provider              = "azuredevops"
+  azuredevops_organization_id  = "00000000-0000-0000-0000-000000000000"
+  repository                   = "my-org/my-project/aws-oidc-service-connection"
+
+  # Differs from this role's own account - marks it as a spoke, drops the direct
+  # OIDC trust statement, and trusts the hub role's sts:AssumeRole instead
+  azuredevops_primary_role_account_id = "111111111111" # management account ID
+
+  permission_boundary = "TerraformExecutionBoundary"
+  read_write_policy_arns = ["arn:aws:iam::aws:policy/PowerUserAccess"]
+
+  tags = { Owner = "platform-team" }
+
+  providers = { aws = aws.finops }
 }
 ```
 
@@ -589,8 +696,10 @@ No modules.
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resources created by this module | `map(string)` | n/a | yes |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The AWS account ID to create the role in | `string` | `null` | no |
 | <a name="input_additional_audiences"></a> [additional\_audiences](#input\_additional\_audiences) | Additional audiences to be allowed in the OIDC federation mapping | `list(string)` | `[]` | no |
+| <a name="input_azuredevops_organization_id"></a> [azuredevops\_organization\_id](#input\_azuredevops\_organization\_id) | The Azure DevOps organization ID (GUID, found under Organization Settings) used to build the OIDC issuer URL (https://vstoken.dev.azure.com/<organization\_id>). Required when common\_provider is 'azuredevops' and custom\_provider is not set. Pass the repository/repositories variables as '<organisation-name>/<project-name>/<service-connection-name>'. | `string` | `null` | no |
+| <a name="input_azuredevops_primary_role_account_id"></a> [azuredevops\_primary\_role\_account\_id](#input\_azuredevops\_primary\_role\_account\_id) | Account ID of the 'primary' role set (matching this module's role names) that Azure DevOps federates into directly via OIDC. When set, an additional trust statement is added to each role created here (read-write, read-only, state reader) allowing its counterpart in that account to assume it via sts:AssumeRole. Used to chain from a hub account (where the Azure DevOps OIDC provider/service connections are configured) into spoke accounts, e.g. a finops account role trusting the equivalent management-account role. Only valid when common\_provider is 'azuredevops', since GitHub/GitLab OIDC providers are configured per-account and don't need this chaining. | `string` | `null` | no |
 | <a name="input_common_provider"></a> [common\_provider](#input\_common\_provider) | The name of a common OIDC provider to be used as the trust for the role | `string` | `"github"` | no |
-| <a name="input_custom_provider"></a> [custom\_provider](#input\_custom\_provider) | An object representing an `aws_iam_openid_connect_provider` resource | <pre>object({<br/>    url                    = string<br/>    audiences              = list(string)<br/>    subject_reader_mapping = string<br/>    subject_branch_mapping = string<br/>    subject_env_mapping    = string<br/>    subject_tag_mapping    = string<br/>  })</pre> | `null` | no |
+| <a name="input_custom_provider"></a> [custom\_provider](#input\_custom\_provider) | An object representing an `aws_iam_openid_connect_provider` resource | <pre>object({<br/>    url                    = string<br/>    audiences              = list(string)<br/>    subject_reader_mapping = string<br/>    subject_branch_mapping = string<br/>    subject_env_mapping    = string<br/>    subject_tag_mapping    = string<br/>    subject_condition_test = optional(string, "StringLike")<br/>  })</pre> | `null` | no |
 | <a name="input_default_inline_policies"></a> [default\_inline\_policies](#input\_default\_inline\_policies) | Inline policies map with policy name as key and json as value, attached to both read-only and read-write roles | `map(string)` | `{}` | no |
 | <a name="input_default_managed_policies"></a> [default\_managed\_policies](#input\_default\_managed\_policies) | List of IAM managed policy ARNs to attach to this role/s, both read-only and read-write | `list(string)` | `[]` | no |
 | <a name="input_enable_key_namespace"></a> [enable\_key\_namespace](#input\_enable\_key\_namespace) | Amended the S3 permissions to write to entire key space i.e <REPOSITORY\_NAME>/* | `bool` | `false` | no |
