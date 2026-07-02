@@ -1,7 +1,18 @@
-## Override only the data sources that need real AWS access (identity, region, the OIDC
-## provider lookup). aws_iam_policy_document is deliberately left un-mocked and evaluated for
-## real by the aws provider (a pure local computation, no API calls) so assertions below verify
-## the actual generated trust policy content - proving the azuredevops/trust_policy/primary-role
+## Configure the real aws provider with fake static credentials, skipping every validation
+## call it would otherwise make. This lets aws_iam_policy_document (a pure local computation,
+## no API calls) evaluate for real, so assertions below verify the actual generated trust
+## policy content, without requiring genuine AWS credentials.
+provider "aws" {
+  region                      = "us-west-2"
+  access_key                  = "mock_access_key"
+  secret_key                  = "mock_secret_key"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+}
+
+## Override only the data sources that would otherwise still need real AWS access (identity,
+## region, the OIDC provider lookup) - proving the azuredevops/trust_policy/primary-role
 ## additions elsewhere in this module left GitHub/GitLab trust policy generation unchanged.
 override_data {
   target = data.aws_caller_identity.current
