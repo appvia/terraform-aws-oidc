@@ -157,9 +157,11 @@ resource "aws_iam_role_policy_attachment" "rw" {
 data "aws_iam_policy_document" "allow_primary_assume_role_rw" {
   count = local.is_primary_role ? 1 : 0
 
-  sid       = "AllowPrimaryAssumeRole"
-  actions   = ["sts:AssumeRole"]
-  resources = [format("arn:aws:iam::*:role%s%s", var.role_path, local.read_write_role_name)]
+  statement {
+    sid       = "AllowPrimaryAssumeRole"
+    actions   = ["sts:AssumeRole"]
+    resources = [format("arn:aws:iam::*:role%s%s", var.role_path, local.read_write_role_name)]
+  }
 }
 
 resource "aws_iam_role_policy" "allow_primary_assume_role_rw" {
