@@ -91,9 +91,9 @@ locals {
     var.azuredevops_primary_role_account_id == null ||
     var.azuredevops_primary_role_account_id == local.account_id
     ) ? {} : {
-    rw = format("arn:aws:iam::%s:role/%s", var.azuredevops_primary_role_account_id, local.read_write_role_name)
-    ro = format("arn:aws:iam::%s:role/%s", var.azuredevops_primary_role_account_id, local.readonly_role_name)
-    sr = format("arn:aws:iam::%s:role/%s", var.azuredevops_primary_role_account_id, local.state_reader_role_name)
+    rw = format("arn:aws:iam::%s:role%s%s", var.azuredevops_primary_role_account_id, var.role_path, local.read_write_role_name)
+    ro = format("arn:aws:iam::%s:role%s%s", var.azuredevops_primary_role_account_id, var.role_path, local.readonly_role_name)
+    sr = format("arn:aws:iam::%s:role%s%s", var.azuredevops_primary_role_account_id, var.role_path, local.state_reader_role_name)
   }
   ## True when this role is a spoke chained into from the primary account, rather than the
   ## primary role itself. Spoke roles are only reachable via the primary role's sts:AssumeRole,
