@@ -96,7 +96,7 @@ data "aws_iam_policy_document" "allow_primary_assume_role_sr" {
   statement {
     sid       = "AllowPrimaryAssumeRole"
     actions   = ["sts:AssumeRole"]
-    resources = [format("arn:aws:iam::*:role/%s", local.state_reader_role_name)]
+    resources = [format("arn:aws:iam::*:role%s%s", var.role_path, local.state_reader_role_name)]
   }
 }
 
