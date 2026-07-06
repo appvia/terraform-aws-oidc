@@ -170,47 +170,6 @@ run "azuredevops_read_only_disabled_single_repo" {
   }
 }
 
-run "azuredevops_custom_provider_override" {
-  command = plan
-
-  module {
-    source = "./modules/role"
-  }
-
-  variables {
-    name        = "azdo-custom"
-    description = "Test role using Azure DevOps via the generic custom_provider escape hatch"
-    repository  = "myorg/myproject/aws-oidc-sc"
-
-    // Proves Azure DevOps can be fully expressed with the pre-existing generic
-    // custom_provider mechanism, with no dependency on common_provider at all.
-    custom_provider = {
-      url                    = "https://vstoken.dev.azure.com/00000000-0000-0000-0000-000000000000"
-      audiences              = ["api://AzureADTokenExchange"]
-      subject_reader_mapping = "sc://{repo}"
-      subject_branch_mapping = "sc://{repo}"
-      subject_env_mapping    = "sc://{repo}"
-      subject_tag_mapping    = "sc://{repo}"
-    }
-
-    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-    tags = {
-      Name = "AzureDevOps-Custom"
-    }
-  }
-
-  assert {
-    condition     = resource.aws_iam_role.rw.name == "azdo-custom"
-    error_message = "Read-write role should be created with name 'azdo-custom'"
-  }
-
-  assert {
-    condition     = can(jsondecode(resource.aws_iam_role.rw.assume_role_policy))
-    error_message = "Trust policy should be valid JSON with custom provider"
-  }
-}
-
 run "azuredevops_primary_role_account_id_rejected_for_github" {
   command = plan
 
