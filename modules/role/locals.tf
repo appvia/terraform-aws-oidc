@@ -76,7 +76,7 @@ locals {
   # The repository name if it is provided, else an empty string
   repository = try(var.repository, "")
   # Extract just the repository name part of the full path
-  repository_name = try(element(split("/", local.repository), length(split("/", local.repository)) - 1), "")
+  repository_name = try(split("@", element(split("/", local.repository), length(split("/", local.repository)) - 1))[0], "")
   # Keys to search for in the subject mapping template
   template_keys_regex = "{(repo|type|ref|env)}"
   # The prefix for the terraform state key in the S3 bucket
