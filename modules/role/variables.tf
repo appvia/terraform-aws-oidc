@@ -101,6 +101,32 @@ variable "additional_audiences" {
   default     = []
 }
 
+variable "trust_policy_conditions" {
+  description = "Additional IAM conditions applied to every trust policy statement on all roles created by this module (read-write, read-only and state reader). Each entry renders as a `condition` block on the assume role policy, e.g. `{ test = \"StringEquals\", variable = \"aws:SourceVpc\", values = [\"vpc-0123456789abcdef0\"] }` to only permit the role to be assumed from a given VPC. Note: `aws:SourceVpc` / `aws:SourceVpce` are only present when the sts:AssumeRole* call reaches AWS via an interface VPC endpoint - i.e. self-hosted runners inside the VPC. Provider-hosted runners (GitHub/GitLab SaaS) call public STS and will be denied."
+  type = list(object({
+    test     = string
+    variable = string
+    values   = list(string)
+  }))
+  default = []
+
+  validation {
+    condition     = alltrue([for c in var.trust_policy_conditions : length(c.values) > 0])
+    error_message = "Each entry in trust_policy_conditions must specify at least one value."
+  }
+
+  ## The module owns the ':aud' and ':sub' conditions - a caller supplied condition sharing the
+  ## same test and variable would be emitted as a duplicate JSON key, silently clobbering the
+  ## repository scoping
+  validation {
+    condition = alltrue([
+      for c in var.trust_policy_conditions :
+      !endswith(lower(c.variable), ":aud") && !endswith(lower(c.variable), ":sub")
+    ])
+    error_message = "trust_policy_conditions must not target the OIDC ':aud' or ':sub' claims - these are managed by the module; use additional_audiences, repository/repositories and protected_by instead."
+  }
+}
+
 variable "tf_state_suffix" {
   description = "A suffix for the terraform state file, e.g. <repo>-<tf_state_suffix>.tfstate"
   type        = string

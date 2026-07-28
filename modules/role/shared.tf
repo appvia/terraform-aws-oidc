@@ -48,6 +48,17 @@ data "aws_iam_policy_document" "sr_assume_role" {
           ]...)
         ]
       }
+
+      ## Additional caller supplied conditions, e.g. locking assumption to a VPC
+      dynamic "condition" {
+        for_each = var.trust_policy_conditions
+
+        content {
+          test     = condition.value.test
+          variable = condition.value.variable
+          values   = condition.value.values
+        }
+      }
     }
   }
 
@@ -63,6 +74,17 @@ data "aws_iam_policy_document" "sr_assume_role" {
       principals {
         type        = "AWS"
         identifiers = [local.primary_role_arns["sr"]]
+      }
+
+      ## Additional caller supplied conditions, e.g. locking assumption to a VPC
+      dynamic "condition" {
+        for_each = var.trust_policy_conditions
+
+        content {
+          test     = condition.value.test
+          variable = condition.value.variable
+          values   = condition.value.values
+        }
       }
     }
   }
