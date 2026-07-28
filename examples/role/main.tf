@@ -60,6 +60,17 @@ module "common_provider_example" {
     "appvia/repo-2",
   ]
 
+  // Additional IAM conditions appended to the trust policy of every role created here.
+  // Note aws:SourceVpc is only present when the sts:AssumeRoleWithWebIdentity call reaches
+  // AWS via an STS interface VPC endpoint - i.e. self-hosted runners inside the VPC.
+  trust_policy_conditions = [
+    {
+      test     = "StringEquals"
+      variable = "aws:SourceVpc"
+      values   = ["vpc-0123456789abcdef0"]
+    },
+  ]
+
   // Tags to apply to the role
   tags = {
     Name = "Example Common Provider"

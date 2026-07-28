@@ -149,68 +149,83 @@ resource "aws_iam_policy" "prod_boundary" {
 
 ### Subject Claim Validation
 
-Configure trust policies to validate specific OIDC claims:
+The `audience` and `subject` claims are validated by the module for you — `additional_audiences` shapes the former, and `repository`/`repositories` combined with `protected_by` shape the latter. Anything beyond those two claims is expressed through `trust_policy_conditions`, which appends conditions verbatim to the trust policy of **every** role the module creates (read-write, read-only and state reader), including the Azure DevOps hub-to-spoke `sts:AssumeRole` statements.
 
 ```hcl
-# Secure GitHub Actions trust policy
-data "aws_iam_policy_document" "secure_github_trust" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    
-    principals {
-      type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
-    }
-    
-    # Validate audience
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-    
-    # Validate repository
-    condition {
-      test     = "StringLike"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:myorg/myrepo:*"]
-    }
-    
-    # Additional security: Validate actor
-    condition {
+module "terraform_roles" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "terraform-hardened"
+  description = "IAM roles with additional trust policy conditions"
+  repository  = "myorg/myrepo"
+
+  trust_policy_conditions = [
+    # Only allow specific actors to assume the role
+    {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:actor"
-      values   = [
-        "approved-user-1",
-        "approved-user-2",
-        "github-actions[bot]"
-      ]
-    }
-    
-    # Time-based access control
-    condition {
+      values   = ["approved-user-1", "approved-user-2", "github-actions[bot]"]
+    },
+    # Time-based access control - office hours only
+    {
       test     = "DateGreaterThan"
       variable = "aws:CurrentTime"
       values   = ["08:00Z"]
-    }
-    condition {
+    },
+    {
       test     = "DateLessThan"
       variable = "aws:CurrentTime"
       values   = ["18:00Z"]
-    }
-    
+    },
     # IP address restrictions
-    condition {
+    {
       test     = "IpAddress"
       variable = "aws:SourceIp"
-      values   = [
-        "203.0.113.0/24",  # Office IP range
-        "198.51.100.0/24"  # VPN IP range
+      values = [
+        "203.0.113.0/24", # Office IP range
+        "198.51.100.0/24" # VPN IP range
       ]
-    }
+    },
+  ]
+
+  tags = {
+    Environment = "production"
   }
 }
 ```
+
+The module rejects conditions targeting a `:aud` or `:sub` claim. Those keys are already emitted by the module, and a second condition block sharing the same operator and key would be rendered as a duplicate JSON key — silently replacing the repository scoping that protects the role.
+
+### Network Scoping: Locking a Role to a VPC
+
+`trust_policy_conditions` is also how you restrict *where* a role may be assumed from, using `aws:SourceVpc`, `aws:SourceVpce` or `aws:VpcSourceIp`:
+
+```hcl
+module "terraform_roles" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "terraform-vpc-locked"
+  description = "IAM roles assumable only from the CI/CD VPC"
+  repository  = "myorg/myrepo"
+
+  trust_policy_conditions = [
+    {
+      test     = "StringEquals"
+      variable = "aws:SourceVpc"
+      values   = ["vpc-0123456789abcdef0"]
+    },
+  ]
+
+  tags = {
+    Environment = "production"
+  }
+}
+```
+
+> [!IMPORTANT]
+> **This requires self-hosted runners.** `aws:SourceVpc`, `aws:SourceVpce` and `aws:VpcSourceIp` are only present in the request context when the API call reaches AWS through an **interface VPC endpoint** in your account. Because the condition sits on the trust policy, it is the `sts:AssumeRoleWithWebIdentity` call itself that must traverse an STS interface endpoint (`com.amazonaws.<region>.sts`) — which means the runner has to be inside the VPC. GitHub- and GitLab-hosted (SaaS) runners call the public STS endpoint, the key is absent from the request, and a `StringEquals` test fails closed: **the role becomes unassumable**. Before enabling this, confirm you are running self-hosted runners in the VPC and that an STS interface endpoint exists in it.
+
+Prefer `aws:SourceVpce` (the specific endpoint ID) over `aws:SourceVpc` when you want the tightest binding, since an endpoint ID cannot be recreated in another account. Note that these conditions restrict role *assumption* only — they do not constrain the API calls made afterwards with the resulting credentials. To enforce the network boundary on the role's own actions as well, add a deny-unless-VPC statement via `default_inline_policies`, or apply it centrally through `permission_boundary_arn`.
 
 ### Azure DevOps: Service-Connection-Scoped Trust
 
