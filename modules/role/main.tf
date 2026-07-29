@@ -26,7 +26,7 @@ data "aws_iam_policy_document" "read_write_assume_role" {
       ## When the enable_read_only_role is false we permit all branches access to the
       ## assume the role
       dynamic "condition" {
-        for_each = var.enable_read_only_role == false ? toset(local.repositories) : toset([])
+        for_each = var.enable_read_only_role == false ? toset(local.repositories_with_ids) : toset([])
 
         content {
           test     = local.selected_provider.subject_condition_test
@@ -44,7 +44,7 @@ data "aws_iam_policy_document" "read_write_assume_role" {
       ## When the enable_read_only_role is true we need to protect the role by using a
       ## branch, tag or environment
       dynamic "condition" {
-        for_each = var.enable_read_only_role == true ? toset(local.repositories) : toset([])
+        for_each = var.enable_read_only_role == true ? toset(local.repositories_with_ids) : toset([])
 
         content {
           test     = local.selected_provider.subject_condition_test

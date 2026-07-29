@@ -283,3 +283,105 @@ run "disable_read_only_role_with_custom_provider" {
     error_message = "Trust policy should be valid JSON with custom provider"
   }
 }
+
+run "repository_ids_id_pinning_evaluates_for_partial_coverage" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "id-pinned-repo"
+    description             = "Test ID-pinned subject computation when only some repos have repository_ids entries"
+    repositories            = ["appvia/repo-a", "appvia/repo-b"]
+    common_provider         = "github"
+    enable_read_only_role   = false
+    enable_terraform_state  = false
+    shared_repositories     = ["appvia/repo-c"]
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    repository_ids = {
+      "appvia/repo-a" = {
+        owner_id = "111111"
+        repo_id  = "222222"
+      }
+      "appvia/repo-c" = {
+        owner_id = "333333"
+        repo_id  = "444444"
+      }
+    }
+    tags = {
+      Name = "ID-Pinned-Repo"
+    }
+  }
+
+  // Real value here is that the plan succeeds at all: local.repositories_with_ids and
+  // local.shared_repositories_with_ids exercise format()/split()/regexall() over
+  // repository_ids for a mix of pinned and unpinned repos without an evaluation error.
+  assert {
+    condition     = resource.aws_iam_role.rw.name == "id-pinned-repo"
+    error_message = "Read-write role should be created when repository_ids only covers some repos"
+  }
+
+  assert {
+    condition     = length(resource.aws_iam_role.sr) == 1
+    error_message = "State reader role should be created for the shared repository"
+  }
+}
+
+run "repository_ids_requires_github_provider" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name            = "id-pinned-gitlab"
+    description     = "Test repository_ids validation error with a non-github provider"
+    repository      = "appvia/repo"
+    common_provider = "gitlab"
+    repository_ids = {
+      "appvia/repo" = {
+        owner_id = "111111"
+        repo_id  = "222222"
+      }
+    }
+    tags = {
+      Name = "ID-Pinned-Gitlab"
+    }
+  }
+
+  expect_failures = [
+    var.repository_ids,
+  ]
+}
+
+run "repository_ids_requires_matching_repo" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name            = "id-pinned-mismatch"
+    description     = "Test repository_ids validation error when a key doesn't match any configured repo"
+    repository      = "appvia/repo"
+    common_provider = "github"
+    repository_ids = {
+      "appvia/other-repo" = {
+        owner_id = "111111"
+        repo_id  = "222222"
+      }
+    }
+    tags = {
+      Name = "ID-Pinned-Mismatch"
+    }
+  }
+
+  expect_failures = [
+    var.repository_ids,
+  ]
+}

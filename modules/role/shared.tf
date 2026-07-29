@@ -40,7 +40,7 @@ data "aws_iam_policy_document" "sr_assume_role" {
         test     = local.selected_provider.subject_condition_test
         variable = format("%s:sub", trimprefix(local.selected_provider.url, "https://"))
         values = [
-          for repo in var.shared_repositories :
+          for repo in local.shared_repositories_with_ids :
           format(replace(local.selected_provider.subject_reader_mapping, format("/%s/", local.template_keys_regex), "%s"), [
             for v in flatten(regexall(local.template_keys_regex, local.selected_provider.subject_reader_mapping)) : {
               repo = repo

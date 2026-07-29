@@ -69,6 +69,33 @@ locals {
   region = var.region != null ? var.region : data.aws_region.current.region
   ## The list of repositories to create roles for
   repositories = compact(concat([var.repository], var.repositories))
+  ## For each repo with a matching var.repository_ids entry, build the ID-pinned equivalent
+  ## ("org@owner_id/repo@repo_id") that GitHub's OIDC sub claim may carry instead of - or as
+  ## well as - the name-based form. The segment-count guard is defensive: repository_ids is
+  ## validated to require common_provider == "github", but this keeps a 3-segment
+  ## azuredevops-style repo string (org/project/service-connection) from ever being mangled.
+  repository_ids_pinned = {
+    for repo in local.repositories : repo => format(
+      "%s@%s/%s@%s",
+      split("/", repo)[0], var.repository_ids[repo].owner_id,
+      split("/", repo)[1], var.repository_ids[repo].repo_id,
+    )
+    if contains(keys(var.repository_ids), repo) && length(split("/", repo)) == 2
+  }
+  ## local.repositories, plus the ID-pinned equivalents above - additive, never a replacement,
+  ## so the read-write role's trust policy accepts either form of the sub claim.
+  repositories_with_ids = concat(local.repositories, values(local.repository_ids_pinned))
+  ## Same ID-pinning, but for the state-reader role's shared_repositories (a separate variable
+  ## from repository/repositories, so it needs its own pinned map).
+  shared_repository_ids_pinned = {
+    for repo in var.shared_repositories : repo => format(
+      "%s@%s/%s@%s",
+      split("/", repo)[0], var.repository_ids[repo].owner_id,
+      split("/", repo)[1], var.repository_ids[repo].repo_id,
+    )
+    if contains(keys(var.repository_ids), repo) && length(split("/", repo)) == 2
+  }
+  shared_repositories_with_ids = concat(var.shared_repositories, values(local.shared_repository_ids_pinned))
   # Find the source control provider from supplied list
   common_provider = lookup(local.common_providers, var.common_provider, null)
   # The selected provider from the supplied list

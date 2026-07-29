@@ -206,3 +206,25 @@ variable "tags" {
   description = "Tags to apply resources created by this module"
   type        = map(string)
 }
+
+variable "repository_ids" {
+  description = "Map of repo (\"org/repo\") to its GitHub numeric owner_id/repo_id, used to additionally allow the ID-pinned form of GitHub's OIDC `sub` claim (e.g. \"org@<owner_id>/repo@<repo_id>\") alongside the existing name-based one - GitHub's Actions OIDC tokens can carry either form. Keys must exactly match an entry in `repository`, `repositories`, or `shared_repositories`. Only supported when common_provider is \"github\"."
+  type = map(object({
+    owner_id = string
+    repo_id  = string
+  }))
+  default = {}
+
+  validation {
+    condition     = length(var.repository_ids) == 0 || var.common_provider == "github"
+    error_message = "repository_ids is only supported when common_provider is \"github\"; GitLab and Azure DevOps have no equivalent numeric ID concept."
+  }
+
+  validation {
+    condition = alltrue([
+      for k in keys(var.repository_ids) :
+      contains(compact(concat([var.repository], var.repositories, var.shared_repositories)), k)
+    ])
+    error_message = "Each key in repository_ids must exactly match an entry in repository, repositories, or shared_repositories (e.g. \"my-org/my-repo\")."
+  }
+}
