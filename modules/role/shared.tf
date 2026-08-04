@@ -18,9 +18,9 @@ data "aws_iam_policy_document" "tfstate_remote" {
 ## Craft the trust policy for the state reader role
 data "aws_iam_policy_document" "sr_assume_role" {
   ## Spoke roles (chained into from the primary account) are only reachable via the primary
-  ## role's sts:AssumeRole below, so they skip the direct OIDC trust statement entirely
+  ## role's sts:AssumeRole below, so they skip the direct OIDC trust statement entirely.
   dynamic "statement" {
-    for_each = local.is_spoke_role ? [] : [1]
+    for_each = length(local.primary_role_arns) > 0 ? [] : [1]
 
     content {
       actions = ["sts:AssumeRoleWithWebIdentity"]

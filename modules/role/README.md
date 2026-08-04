@@ -273,6 +273,46 @@ module "terraform_roles_spoke" {
 }
 ```
 
+### **Azure DevOps - Trusting Specific Named Roles**
+
+`azuredevops_primary_role_account_id` (above) derives exactly one counterpart role per role type, matching this module's own `{name}`/`{name}-ro`/`{name}-sr` naming convention. `azuredevops_assume_roles` lets you take explicit control of that trust list instead - e.g. to trust several roles from other module invocations in the same primary account.
+
+Each name resolves differently per role: the read-write role trusts the name as given, while the read-only role trusts the name suffixed with `-ro` (mirroring how this module names its own read-only role) - so a single list of base names produces the correct pair of ARNs for both roles.
+
+```hcl
+module "landing_zone_management" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "lz-aws-landing-zones-management"
+  description = "Spoke role - trusts only this named set of roles in the primary account"
+
+  common_provider              = "azuredevops"
+  azuredevops_organization_id  = "00000000-0000-0000-0000-000000000000"
+  repository                   = "my-org/my-project/aws-oidc-service-connection"
+
+  azuredevops_primary_role_account_id = "111111111111" # management account ID
+
+  # Replaces the naming-convention-derived trust statement entirely.
+  # read-write trusts arn:...:role/lz-aws-landing-zones-application and arn:...:role/lz-aws-landing-zones-platform
+  # read-only trusts the same two names with '-ro' appended
+  azuredevops_assume_roles = [
+    "lz-aws-landing-zones-application",
+    "lz-aws-landing-zones-platform",
+  ]
+
+  permission_boundary = "TerraformExecutionBoundary"
+  read_write_policy_arns = ["arn:aws:iam::aws:policy/PowerUserAccess"]
+
+  tags = { Owner = "platform-team" }
+
+  providers = { aws = aws.finops }
+}
+```
+
+> **This pattern is specific to Azure DevOps and has no effect for GitHub or GitLab**, for the same reason as `azuredevops_primary_role_account_id` above - `azuredevops_assume_roles` is validated to only be settable when `common_provider = "azuredevops"`.
+
+> **This variable does not apply to the state reader role** (created when `shared_repositories` is set). That role isn't supported by `azuredevops_assume_roles` and always keeps trusting only its naming-convention counterpart (`{name}-sr`) via `azuredevops_primary_role_account_id`, regardless of what's listed here.
+
 ### **Advanced Usage - Multi-Environment with Custom Policies**
 
 This example shows how to configure different access levels for different environments and branches, with custom inline policies and enhanced security controls.
@@ -621,6 +661,7 @@ The `terraform-docs` utility is used to generate this README. Follow the below s
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resources created by this module | `map(string)` | n/a | yes |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | The AWS account ID to create the role in | `string` | `null` | no |
 | <a name="input_additional_audiences"></a> [additional\_audiences](#input\_additional\_audiences) | Additional audiences to be allowed in the OIDC federation mapping | `list(string)` | `[]` | no |
+| <a name="input_azuredevops_assume_roles"></a> [azuredevops\_assume\_roles](#input\_azuredevops\_assume\_roles) | List of IAM role names in the azuredevops\_primary\_role\_account\_id account to trust via sts:AssumeRole. Each name is combined with azuredevops\_primary\_role\_account\_id to build the full ARN: the read-write role trusts the name as given, the read-only role trusts the name suffixed with '-ro' (matching this module's own read-only naming convention). Only applies to the read-write and read-only roles - the state reader role (shared\_repositories) isn't supported by this variable and always keeps trusting only its naming-convention counterpart. Only valid when common\_provider is 'azuredevops', and requires azuredevops\_primary\_role\_account\_id to be set. | `list(string)` | `[]` | no |
 | <a name="input_azuredevops_organization_id"></a> [azuredevops\_organization\_id](#input\_azuredevops\_organization\_id) | The Azure DevOps organization ID (GUID, found under Organization Settings) used to build the OIDC issuer URL (https://vstoken.dev.azure.com/<organization\_id>). Required when common\_provider is 'azuredevops' and custom\_provider is not set. Pass the repository/repositories variables as '<organisation-name>/<project-name>/<service-connection-name>'. | `string` | `null` | no |
 | <a name="input_azuredevops_primary_role_account_id"></a> [azuredevops\_primary\_role\_account\_id](#input\_azuredevops\_primary\_role\_account\_id) | Account ID of the 'primary' role set (matching this module's role names) that Azure DevOps federates into directly via OIDC. When set, an additional trust statement is added to each role created here (read-write, read-only, state reader) allowing its counterpart in that account to assume it via sts:AssumeRole. Used to chain from a hub account (where the Azure DevOps OIDC provider/service connections are configured) into spoke accounts, e.g. a finops account role trusting the equivalent management-account role. Only valid when common\_provider is 'azuredevops', since GitHub/GitLab OIDC providers are configured per-account and don't need this chaining. | `string` | `null` | no |
 | <a name="input_common_provider"></a> [common\_provider](#input\_common\_provider) | The name of a common OIDC provider to be used as the trust for the role | `string` | `"github"` | no |
