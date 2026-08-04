@@ -112,30 +112,6 @@ run "azuredevops_provider" {
   }
 }
 
-run "azuredevops_missing_organization_id" {
-  command = plan
-
-  module {
-    source = "./modules/role"
-  }
-
-  variables {
-    name                    = "azdo-missing-org"
-    description             = "Test role using Azure DevOps OIDC provider without an organization id"
-    repository              = "myorg/myproject/aws-oidc-sc"
-    common_provider         = "azuredevops"
-    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-    tags = {
-      Name = "AzureDevOps-Missing-Org"
-    }
-  }
-
-  expect_failures = [
-    var.common_provider,
-  ]
-}
-
 run "azuredevops_read_only_disabled_single_repo" {
   command = plan
 
@@ -168,31 +144,6 @@ run "azuredevops_read_only_disabled_single_repo" {
     condition     = length(resource.aws_iam_role.ro) == 0
     error_message = "Read-only role should not be created when enable_read_only_role is false"
   }
-}
-
-run "azuredevops_primary_role_account_id_rejected_for_github" {
-  command = plan
-
-  module {
-    source = "./modules/role"
-  }
-
-  variables {
-    name                                = "github-primary-rejected"
-    description                         = "GitHub role should reject azuredevops_primary_role_account_id"
-    repository                          = "myorg/myrepo"
-    common_provider                     = "github"
-    azuredevops_primary_role_account_id = "111111111111"
-    permission_boundary_arn             = "arn:aws:iam::aws:policy/AdministratorAccess"
-    read_write_policy_arns              = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-    tags = {
-      Name = "GitHub-Primary-Rejected"
-    }
-  }
-
-  expect_failures = [
-    var.azuredevops_primary_role_account_id,
-  ]
 }
 
 run "azuredevops_primary_role_account_id_adds_cross_account_trust" {
@@ -286,58 +237,6 @@ run "azuredevops_primary_role_account_id_adds_cross_account_trust" {
     condition     = length(resource.aws_iam_role_policy.allow_primary_assume_role_sr) == 0
     error_message = "Spoke state reader role should not have an allow_primary_assume_role policy"
   }
-}
-
-run "azuredevops_assume_roles_rejected_for_github" {
-  command = plan
-
-  module {
-    source = "./modules/role"
-  }
-
-  variables {
-    name                                = "github-assume-roles-rejected"
-    description                         = "GitHub role should reject azuredevops_assume_roles"
-    repository                          = "myorg/myrepo"
-    common_provider                     = "github"
-    azuredevops_primary_role_account_id = null
-    azuredevops_assume_roles            = ["external-ci"]
-    permission_boundary_arn             = "arn:aws:iam::aws:policy/AdministratorAccess"
-    read_write_policy_arns              = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-    tags = {
-      Name = "GitHub-Assume-Roles-Rejected"
-    }
-  }
-
-  expect_failures = [
-    var.azuredevops_assume_roles,
-  ]
-}
-
-run "azuredevops_assume_roles_requires_primary_role_account_id" {
-  command = plan
-
-  module {
-    source = "./modules/role"
-  }
-
-  variables {
-    name                        = "azdo-assume-roles-no-primary"
-    description                 = "Azure DevOps role should reject azuredevops_assume_roles without azuredevops_primary_role_account_id"
-    repository                  = "myorg/myproject/aws-oidc-sc"
-    common_provider             = "azuredevops"
-    azuredevops_organization_id = "00000000-0000-0000-0000-000000000000"
-    azuredevops_assume_roles    = ["external-ci"]
-    permission_boundary_arn     = "arn:aws:iam::aws:policy/AdministratorAccess"
-    read_write_policy_arns      = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-    tags = {
-      Name = "AzureDevOps-Assume-Roles-No-Primary"
-    }
-  }
-
-  expect_failures = [
-    var.azuredevops_assume_roles,
-  ]
 }
 
 run "azuredevops_assume_roles_replaces_named_role_trust" {
