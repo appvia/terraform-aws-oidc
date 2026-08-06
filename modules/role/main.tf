@@ -81,9 +81,11 @@ data "aws_iam_policy_document" "read_write_assume_role" {
   }
 
   ## Allow the counterpart read-write role in the primary (Azure DevOps hub) account to
-  ## assume this role, chaining cross-account access from the hub's OIDC-federated role
+  ## assume this role, chaining cross-account access from the hub's OIDC-federated role.
+  ## Skipped when azuredevops_assume_roles is set - that variable takes over the trust list
+  ## entirely (see the AllowAssumeRoles statement below), rather than adding to this one
   dynamic "statement" {
-    for_each = contains(keys(local.primary_role_arns), "rw") ? [1] : []
+    for_each = contains(keys(local.primary_role_arns), "rw") && length(var.azuredevops_assume_roles) == 0 ? [1] : []
 
     content {
       sid     = "AllowPrimaryRoleAssume"
@@ -92,6 +94,21 @@ data "aws_iam_policy_document" "read_write_assume_role" {
       principals {
         type        = "AWS"
         identifiers = [local.primary_role_arns["rw"]]
+      }
+    }
+  }
+
+  ## Allow only the explicitly named roles (azuredevops_assume_roles)
+  dynamic "statement" {
+    for_each = length(local.assume_role_arns_rw) > 0 ? [1] : []
+
+    content {
+      sid     = "AllowAssumeRoles"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = local.assume_role_arns_rw
       }
     }
   }

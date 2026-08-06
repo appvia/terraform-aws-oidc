@@ -98,10 +98,16 @@ locals {
   ## True when this role is a spoke chained into from the primary account, rather than the
   ## primary role itself. Spoke roles are only reachable via the primary role's sts:AssumeRole,
   ## so they should not also carry a direct OIDC (sts:AssumeRoleWithWebIdentity) trust statement.
-  is_spoke_role = length(local.primary_role_arns) > 0
+  ## Also true whenever azuredevops_assume_roles is set - that variable takes over the trust
+  ## source entirely (only the named roles chain in via sts:AssumeRole), even if this happens
+  ## to be the primary account, so the direct OIDC trust statement is skipped there too.
+  is_spoke_role = length(local.primary_role_arns) > 0 || length(var.azuredevops_assume_roles) > 0
   ## True when this role IS the primary (hub) role that Azure DevOps federates into directly -
   ## i.e. azuredevops_primary_role_account_id is set and matches this role's own account. The
   ## primary role needs its own sts:AssumeRole permission to chain into the spoke roles that
   ## trust it, granted via the allow_primary_assume_role inline policy on each role type.
   is_primary_role = var.azuredevops_primary_role_account_id != null && var.azuredevops_primary_role_account_id == local.account_id
+  ## ARNs for the explicitly named roles in azuredevops_assume_roles.
+  assume_role_arns_rw = [for name in var.azuredevops_assume_roles : format("arn:aws:iam::%s:role%s%s", var.azuredevops_primary_role_account_id, var.role_path, name)]
+  assume_role_arns_ro = [for name in var.azuredevops_assume_roles : format("arn:aws:iam::%s:role%s%s-ro", var.azuredevops_primary_role_account_id, var.role_path, name)]
 }

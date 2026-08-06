@@ -55,9 +55,9 @@ data "aws_iam_policy_document" "read_only_assume_role" {
   }
 
   ## Allow the counterpart read-only role in the primary (Azure DevOps hub) account to
-  ## assume this role, chaining cross-account access from the hub's OIDC-federated role
+  ## assume this role, chaining cross-account access from the hub's OIDC-federated role.
   dynamic "statement" {
-    for_each = contains(keys(local.primary_role_arns), "ro") ? [1] : []
+    for_each = contains(keys(local.primary_role_arns), "ro") && length(var.azuredevops_assume_roles) == 0 ? [1] : []
 
     content {
       sid     = "AllowPrimaryRoleAssume"
@@ -66,6 +66,22 @@ data "aws_iam_policy_document" "read_only_assume_role" {
       principals {
         type        = "AWS"
         identifiers = [local.primary_role_arns["ro"]]
+      }
+    }
+  }
+
+  ## Allow only the explicitly named roles (azuredevops_assume_roles, resolved to '-ro'-suffixed
+  ## ARNs in the primary account as local.assume_role_arns_ro) to assume this role.
+  dynamic "statement" {
+    for_each = length(local.assume_role_arns_ro) > 0 ? [1] : []
+
+    content {
+      sid     = "AllowAssumeRoles"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = local.assume_role_arns_ro
       }
     }
   }

@@ -59,11 +59,6 @@ variable "common_provider" {
     condition     = contains(["github", "gitlab", "azuredevops"], var.common_provider)
     error_message = "Allowed values for common_provider are github, gitlab or azuredevops."
   }
-
-  validation {
-    condition     = !(var.common_provider == "azuredevops" && var.custom_provider == null && var.azuredevops_organization_id == null)
-    error_message = "azuredevops_organization_id must be set when common_provider is 'azuredevops' and custom_provider is not set."
-  }
 }
 
 variable "azuredevops_organization_id" {
@@ -77,10 +72,12 @@ variable "azuredevops_primary_role_account_id" {
   type        = string
   default     = null
 
-  validation {
-    condition     = var.azuredevops_primary_role_account_id == null || var.common_provider == "azuredevops"
-    error_message = "azuredevops_primary_role_account_id can only be set when common_provider is 'azuredevops'."
-  }
+}
+
+variable "azuredevops_assume_roles" {
+  description = "List of IAM role names in the azuredevops_primary_role_account_id account to trust via sts:AssumeRole. Each name is combined with azuredevops_primary_role_account_id to build the full ARN: the read-write role trusts the name as given, the read-only role trusts the name suffixed with '-ro' (matching this module's own read-only naming convention). Only applies to the read-write and read-only roles - the state reader role (shared_repositories) isn't supported by this variable and always keeps trusting only its naming-convention counterpart. Only valid when common_provider is 'azuredevops', and requires azuredevops_primary_role_account_id to be set."
+  type        = list(string)
+  default     = []
 }
 
 variable "custom_provider" {
