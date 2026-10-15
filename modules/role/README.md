@@ -55,7 +55,7 @@ This module provides a complete OIDC-based authentication solution that creates 
 - **Namespace Support**: Optional entire namespace access for complex deployments
 - **Cross-Repository Sharing**: Secure state access across multiple repositories
 - **State File Naming**: The state file naming follows a specific pattern:
-  - **Explicit Override**: When `tf_state_key` is set (e.g. `hosting/dev/workspaces`), it is used as the state key regardless of the rules below; the IAM role names are still derived from `var.name`
+  - **Explicit Override**: When `tf_state_key` is set (e.g. `hosting/dev/workspaces`), it is used verbatim as the state object key (no `.tfstate` extension or suffix is added), with the lock at `<state-key>.tflock`; the IAM role names are still derived from `var.name`
   - **Multiple Repositories**: When the `repositories` variable contains additional repositories (multiple repositories sharing the same role), the state file key uses `var.name` (the IAM role name)
   - **Single Repository**: When only a single repository is configured, the state file key uses the repository name (extracted from `var.repository`)
   - **State File Format**: `<account-id>-<region>-tfstate/<state-key><suffix>.tfstate`
@@ -449,10 +449,12 @@ module "workspaces_role" {
 
 This grants access to:
 
-- `<account-id>-<region>-tfstate/hosting/dev/workspaces.tfstate` (and `.tfstate.tflock`)
-- `<account-id>-<region>-tfstate/hosting/dev/workspaces/*` (and `*.tfstate.tflock`), only when `enable_key_namespace = true`
+- `<account-id>-<region>-tfstate/hosting/dev/workspaces` (and `hosting/dev/workspaces.tflock`)
+- `<account-id>-<region>-tfstate/hosting/dev/workspaces/*` (and `*.tflock`), only when `enable_key_namespace = true`
 
-The key must be a relative path made of `[A-Za-z0-9_.-]` segments separated by single slashes. It cannot contain wildcards; use `enable_key_namespace` to grant the wider key space. You can combine it with `tf_state_suffix`, e.g. `hosting/dev/workspaces-prod.tfstate`.
+The key is used exactly as given, so configure the backend with the same key, e.g. `key = "hosting/dev/workspaces"`. No `.tfstate` extension is appended and `tf_state_suffix` is ignored; if you want an extension, include it in the key (e.g. `hosting/dev/workspaces.tfstate`, giving a lock of `hosting/dev/workspaces.tfstate.tflock`).
+
+The key must be a relative path made of `[A-Za-z0-9_.-]` segments separated by single slashes. It cannot contain wildcards; use `enable_key_namespace` to grant the wider key space.
 
 ### **Custom OIDC Provider Configuration**
 
@@ -718,13 +720,13 @@ The `terraform-docs` utility is used to generate this README. Follow the below s
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | n/a |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_description"></a> [description](#input\_description) | Description of the role being created | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the role to create | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply resources created by this module | `map(string)` | n/a | yes |
@@ -755,14 +757,14 @@ The `terraform-docs` utility is used to generate this README. Follow the below s
 | <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping (used when repositories variable is not set) | `string` | `null` | no |
 | <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `"/"` | no |
 | <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the terraform remote state | `list(string)` | `[]` | no |
-| <a name="input_tf_state_key"></a> [tf\_state\_key](#input\_tf\_state\_key) | Overrides the key used for the terraform state in the S3 bucket, e.g. hosting/dev/workspaces => hosting/dev/workspaces.tfstate (or hosting/dev/workspaces/* when enable\_key\_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names | `string` | `null` | no |
+| <a name="input_tf_state_key"></a> [tf\_state\_key](#input\_tf\_state\_key) | Overrides the key used for the terraform state in the S3 bucket. The key is used verbatim (no .tfstate extension or tf\_state\_suffix is added), e.g. hosting/dev/workspaces => hosting/dev/workspaces and hosting/dev/workspaces.tflock (or hosting/dev/workspaces/* when enable\_key\_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names | `string` | `null` | no |
 | <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform state file, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
 | <a name="input_trust_policy_conditions"></a> [trust\_policy\_conditions](#input\_trust\_policy\_conditions) | Additional IAM conditions applied to every trust policy statement on all roles created by this module (read-write, read-only and state reader). Each entry renders as a `condition` block on the assume role policy, e.g. `{ test = "StringEquals", variable = "aws:SourceVpc", values = ["vpc-0123456789abcdef0"] }` to only permit the role to be assumed from a given VPC. Note: `aws:SourceVpc` / `aws:SourceVpce` are only present when the sts:AssumeRole* call reaches AWS via an interface VPC endpoint - i.e. self-hosted runners inside the VPC. Provider-hosted runners (GitHub/GitLab SaaS) call public STS and will be denied. | <pre>list(object({<br/>    test     = string<br/>    variable = string<br/>    values   = list(string)<br/>  }))</pre> | `[]` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_read_only"></a> [read\_only](#output\_read\_only) | The ARN of the IAM read-only role |
 | <a name="output_read_write"></a> [read\_write](#output\_read\_write) | The ARN of the IAM read-write role |
 | <a name="output_state_reader"></a> [state\_reader](#output\_state\_reader) | The ARN of the IAM state reader role |

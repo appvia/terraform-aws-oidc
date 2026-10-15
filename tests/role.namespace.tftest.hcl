@@ -242,17 +242,18 @@ run "state_key_override" {
 
   assert {
     condition = alltrue([
-      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate"),
-      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate.tflock"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tflock"),
+      !contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate"),
       !contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate"),
     ])
-    error_message = "S3 policy should use the overridden state key"
+    error_message = "S3 policy should use the overridden state key verbatim"
   }
 
   assert {
     condition = (
       length(data.aws_iam_policy_document.base.statement[2].resources) == 1 &&
-      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate.tflock")
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tflock")
     )
     error_message = "Lock file permissions should use the overridden state key"
   }
@@ -280,10 +281,41 @@ run "state_key_override_with_namespace" {
 
   assert {
     condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces"),
       contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces/*"),
-      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces/*.tfstate.tflock"),
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tflock"),
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces/*.tflock"),
     ])
     error_message = "S3 policy should grant the overridden key space when namespace is enabled"
+  }
+}
+
+run "state_key_override_ignores_suffix" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "test-repo"
+    common_provider         = "github"
+    description             = "Test role with an overridden state key and a suffix"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    repository              = "appvia/test-repo"
+    tf_state_key            = "hosting/dev/workspaces"
+    tf_state_suffix         = "prod"
+    tags                    = {}
+  }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tflock"),
+      !contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces-prod"),
+    ])
+    error_message = "tf_state_suffix should not be applied to an overridden state key"
   }
 }
 

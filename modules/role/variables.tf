@@ -134,7 +134,7 @@ variable "tf_state_suffix" {
 }
 
 variable "tf_state_key" {
-  description = "Overrides the key used for the terraform state in the S3 bucket, e.g. hosting/dev/workspaces => hosting/dev/workspaces.tfstate (or hosting/dev/workspaces/* when enable_key_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names"
+  description = "Overrides the key used for the terraform state in the S3 bucket. The key is used verbatim (no .tfstate extension or tf_state_suffix is added), e.g. hosting/dev/workspaces => hosting/dev/workspaces and hosting/dev/workspaces.tflock (or hosting/dev/workspaces/* when enable_key_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names"
   type        = string
   default     = null
 
