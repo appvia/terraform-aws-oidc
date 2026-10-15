@@ -230,14 +230,14 @@ run "state_key_override" {
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     repository              = "appvia/test-repo"
-    tf_state_key            = "hosting/dev/workspaces"
+    state_key               = "hosting/dev/workspaces"
     tags                    = {}
   }
 
   # The role names should still be derived from the name
   assert {
     condition     = aws_iam_role.rw.name == "test-repo" && aws_iam_role.ro[0].name == "test-repo-ro"
-    error_message = "Role names should not be affected by tf_state_key"
+    error_message = "Role names should not be affected by state_key"
   }
 
   assert {
@@ -275,7 +275,7 @@ run "state_key_override_with_namespace" {
     read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     repositories            = ["appvia/test-repo", "appvia/other-repo"]
-    tf_state_key            = "hosting/dev/workspaces"
+    state_key               = "hosting/dev/workspaces"
     tags                    = {}
   }
 
@@ -304,7 +304,7 @@ run "state_key_override_ignores_suffix" {
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     repository              = "appvia/test-repo"
-    tf_state_key            = "hosting/dev/workspaces"
+    state_key               = "hosting/dev/workspaces"
     tf_state_suffix         = "prod"
     tags                    = {}
   }
@@ -333,9 +333,9 @@ run "state_key_override_invalid" {
     permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
     read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
     repository              = "appvia/test-repo"
-    tf_state_key            = "/hosting/dev/*"
+    state_key               = "/hosting/dev/*"
     tags                    = {}
   }
 
-  expect_failures = [var.tf_state_key]
+  expect_failures = [var.state_key]
 }

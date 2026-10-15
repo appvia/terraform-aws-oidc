@@ -1,12 +1,12 @@
 locals {
-  ## Note: an explicit tf_state_key always wins, else when using multiple repositories, the state key is
+  ## Note: an explicit state_key always wins, else when using multiple repositories, the state key is
   ## the iam role name, else it is the repository name
-  state_key = var.tf_state_key != null ? var.tf_state_key : (length(var.repositories) > 0 ? var.name : local.repository_name)
-  ## When tf_state_key is set the key is used verbatim, i.e. no suffix and no .tfstate extension
-  state_key_suffix = var.tf_state_key != null ? "" : local.tf_state_suffix
+  state_key = var.state_key != null ? var.state_key : (length(var.repositories) > 0 ? var.name : local.repository_name)
+  ## When state_key is set the key is used verbatim, i.e. no suffix and no .tfstate extension
+  state_key_suffix = var.state_key != null ? "" : local.tf_state_suffix
   # The extension of the state file, only added when the state key is derived
-  state_file_extension = var.tf_state_key != null ? "" : ".tfstate"
-  # The default state key is PREFIX + REPOSITORY_NAME + .tfstate, or the tf_state_key verbatim
+  state_file_extension = var.state_key != null ? "" : ".tfstate"
+  # The default state key is PREFIX + REPOSITORY_NAME + .tfstate, or the state_key verbatim
   default_state_key = format("arn:aws:s3:::%s-tfstate/%s%s%s", local.tf_state_bucket, local.state_key, local.state_key_suffix, local.state_file_extension)
   # Is the default state lock file key, i.e. the state key + .tflock
   default_state_lock_file_key = format("%s.tflock", local.default_state_key)

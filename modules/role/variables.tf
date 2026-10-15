@@ -133,15 +133,15 @@ variable "tf_state_suffix" {
   default     = ""
 }
 
-variable "tf_state_key" {
+variable "state_key" {
   description = "Overrides the key used for the terraform state in the S3 bucket. The key is used verbatim (no .tfstate extension or tf_state_suffix is added), e.g. hosting/dev/workspaces => hosting/dev/workspaces and hosting/dev/workspaces.tflock (or hosting/dev/workspaces/* when enable_key_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names"
   type        = string
   default     = null
 
   validation {
     ## No leading/trailing or double slashes, and no wildcards - use enable_key_namespace for the key space
-    condition     = var.tf_state_key == null || can(regex("^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$", var.tf_state_key))
-    error_message = "tf_state_key must be a relative S3 key of [A-Za-z0-9_.-] segments separated by single slashes, with no wildcards, e.g. hosting/dev/workspaces."
+    condition     = var.state_key == null || can(regex("^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$", var.state_key))
+    error_message = "state_key must be a relative S3 key of [A-Za-z0-9_.-] segments separated by single slashes, with no wildcards, e.g. hosting/dev/workspaces."
   }
 }
 
