@@ -1,6 +1,7 @@
 locals {
-  ## Note: when using multiple repositories, the state key is the iam role name, else it is the repository name
-  state_key = length(var.repositories) > 0 ? var.name : local.repository_name
+  ## Note: an explicit tf_state_key always wins, else when using multiple repositories, the state key is
+  ## the iam role name, else it is the repository name
+  state_key = var.tf_state_key != null ? var.tf_state_key : (length(var.repositories) > 0 ? var.name : local.repository_name)
   # The default state key is PREFIX + REPOSITORY_NAME + .tfstate
   default_state_key = format("arn:aws:s3:::%s-tfstate/%s%s.tfstate", local.tf_state_bucket, local.state_key, local.tf_state_suffix)
   # Is the default state lock file key

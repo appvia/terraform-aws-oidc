@@ -214,3 +214,96 @@ run "namespace_disabled_with_suffix" {
     error_message = "S3 policy should use namespace wildcard when namespace is disabled"
   }
 }
+
+run "state_key_override" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "test-repo"
+    common_provider         = "github"
+    description             = "Test role with an overridden state key"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    repository              = "appvia/test-repo"
+    tf_state_key            = "hosting/dev/workspaces"
+    tags                    = {}
+  }
+
+  # The role names should still be derived from the name
+  assert {
+    condition     = aws_iam_role.rw.name == "test-repo" && aws_iam_role.ro[0].name == "test-repo-ro"
+    error_message = "Role names should not be affected by tf_state_key"
+  }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate"),
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate.tflock"),
+      !contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/test-repo.tfstate"),
+    ])
+    error_message = "S3 policy should use the overridden state key"
+  }
+
+  assert {
+    condition = (
+      length(data.aws_iam_policy_document.base.statement[2].resources) == 1 &&
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces.tfstate.tflock")
+    )
+    error_message = "Lock file permissions should use the overridden state key"
+  }
+}
+
+run "state_key_override_with_namespace" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "test-repo"
+    common_provider         = "github"
+    description             = "Test role with an overridden state key and namespace"
+    enable_key_namespace    = true
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_only_policy_arns   = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    repositories            = ["appvia/test-repo", "appvia/other-repo"]
+    tf_state_key            = "hosting/dev/workspaces"
+    tags                    = {}
+  }
+
+  assert {
+    condition = alltrue([
+      contains(data.aws_iam_policy_document.base.statement[1].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces/*"),
+      contains(data.aws_iam_policy_document.base.statement[2].resources, "arn:aws:s3:::123456789012-us-west-2-tfstate/hosting/dev/workspaces/*.tfstate.tflock"),
+    ])
+    error_message = "S3 policy should grant the overridden key space when namespace is enabled"
+  }
+}
+
+run "state_key_override_invalid" {
+  command = plan
+
+  module {
+    source = "./modules/role"
+  }
+
+  variables {
+    name                    = "test-repo"
+    common_provider         = "github"
+    description             = "Test role with an invalid state key"
+    permission_boundary_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    read_write_policy_arns  = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+    repository              = "appvia/test-repo"
+    tf_state_key            = "/hosting/dev/*"
+    tags                    = {}
+  }
+
+  expect_failures = [var.tf_state_key]
+}

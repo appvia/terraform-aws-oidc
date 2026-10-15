@@ -55,6 +55,7 @@ This module provides a complete OIDC-based authentication solution that creates 
 - **Namespace Support**: Optional entire namespace access for complex deployments
 - **Cross-Repository Sharing**: Secure state access across multiple repositories
 - **State File Naming**: The state file naming follows a specific pattern:
+  - **Explicit Override**: When `tf_state_key` is set (e.g. `hosting/dev/workspaces`), it is used as the state key regardless of the rules below; the IAM role names are still derived from `var.name`
   - **Multiple Repositories**: When the `repositories` variable contains additional repositories (multiple repositories sharing the same role), the state file key uses `var.name` (the IAM role name)
   - **Single Repository**: When only a single repository is configured, the state file key uses the repository name (extracted from `var.repository`)
   - **State File Format**: `<account-id>-<region>-tfstate/<state-key><suffix>.tfstate`
@@ -423,6 +424,36 @@ module "shared_infrastructure_roles" {
 
 **Note on State File Naming**: When the `repositories` variable contains additional repositories (multiple repositories using the same role), the state file key will use the `name` parameter (e.g., `shared-infrastructure`) instead of the repository name. When only a single repository is configured (using only `repository`), the state file key uses the repository name. This ensures consistent state file naming when multiple repositories share the same IAM role.
 
+### **Overriding the State Key**
+
+By default the state key is derived from the repository name (or `name` when using multiple repositories). Use `tf_state_key` to place the state and lock files under a specific key in the bucket instead. Only the S3 permissions change; the roles are still named from `name` (e.g. `platform-workspaces`, `platform-workspaces-ro`).
+
+```hcl
+module "workspaces_role" {
+  source = "appvia/oidc/aws//modules/role"
+
+  name        = "platform-workspaces"
+  description = "Terraform workspaces for the hosting dev environment"
+  repository  = "my-org/platform-workspaces"
+
+  # State and lock live under hosting/dev/workspaces rather than platform-workspaces
+  tf_state_key         = "hosting/dev/workspaces"
+  enable_key_namespace = true
+
+  read_only_policy_arns  = ["arn:aws:iam::aws:policy/ReadOnlyAccess"]
+  read_write_policy_arns = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+
+  tags = {}
+}
+```
+
+This grants access to:
+
+- `<account-id>-<region>-tfstate/hosting/dev/workspaces.tfstate` (and `.tfstate.tflock`)
+- `<account-id>-<region>-tfstate/hosting/dev/workspaces/*` (and `*.tfstate.tflock`), only when `enable_key_namespace = true`
+
+The key must be a relative path made of `[A-Za-z0-9_.-]` segments separated by single slashes. It cannot contain wildcards; use `enable_key_namespace` to grant the wider key space. You can combine it with `tf_state_suffix`, e.g. `hosting/dev/workspaces-prod.tfstate`.
+
 ### **Custom OIDC Provider Configuration**
 
 This example shows how to configure a custom OIDC provider for non-standard CI/CD systems.
@@ -724,6 +755,7 @@ The `terraform-docs` utility is used to generate this README. Follow the below s
 | <a name="input_repository"></a> [repository](#input\_repository) | Repository to be allowed in the OIDC federation mapping (used when repositories variable is not set) | `string` | `null` | no |
 | <a name="input_role_path"></a> [role\_path](#input\_role\_path) | Path under which to create IAM role. | `string` | `"/"` | no |
 | <a name="input_shared_repositories"></a> [shared\_repositories](#input\_shared\_repositories) | List of repositories to provide read access to the terraform remote state | `list(string)` | `[]` | no |
+| <a name="input_tf_state_key"></a> [tf\_state\_key](#input\_tf\_state\_key) | Overrides the key used for the terraform state in the S3 bucket, e.g. hosting/dev/workspaces => hosting/dev/workspaces.tfstate (or hosting/dev/workspaces/* when enable\_key\_namespace is true). Defaults to the role name (multiple repositories) or repository name. Does not affect the IAM role names | `string` | `null` | no |
 | <a name="input_tf_state_suffix"></a> [tf\_state\_suffix](#input\_tf\_state\_suffix) | A suffix for the terraform state file, e.g. <repo>-<tf\_state\_suffix>.tfstate | `string` | `""` | no |
 | <a name="input_trust_policy_conditions"></a> [trust\_policy\_conditions](#input\_trust\_policy\_conditions) | Additional IAM conditions applied to every trust policy statement on all roles created by this module (read-write, read-only and state reader). Each entry renders as a `condition` block on the assume role policy, e.g. `{ test = "StringEquals", variable = "aws:SourceVpc", values = ["vpc-0123456789abcdef0"] }` to only permit the role to be assumed from a given VPC. Note: `aws:SourceVpc` / `aws:SourceVpce` are only present when the sts:AssumeRole* call reaches AWS via an interface VPC endpoint - i.e. self-hosted runners inside the VPC. Provider-hosted runners (GitHub/GitLab SaaS) call public STS and will be denied. | <pre>list(object({<br/>    test     = string<br/>    variable = string<br/>    values   = list(string)<br/>  }))</pre> | `[]` | no |
 
