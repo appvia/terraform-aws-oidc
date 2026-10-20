@@ -14,19 +14,19 @@ permissions:
 
 jobs:
   role-validation:
-    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@7bef18ab8ad273acd7c10cee39f8f7e65e4bc578 # main
+    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@18f98cf9113c09c2d6befa2b936736f090ca7d6b # main
     name: OIDC Role Module
     with:
       working-directory: modules/role
 
   remote-state-validation:
-    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@7bef18ab8ad273acd7c10cee39f8f7e65e4bc578 # main
+    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@18f98cf9113c09c2d6befa2b936736f090ca7d6b # main
     name: Remote State Module
     with:
       working-directory: modules/remote_state
 
   provider-validation:
-    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@7bef18ab8ad273acd7c10cee39f8f7e65e4bc578 # main
+    uses: appvia/appvia-cicd-workflows/.github/workflows/terraform-module-validation.yml@18f98cf9113c09c2d6befa2b936736f090ca7d6b # main
     name: Provider Module
     with:
       working-directory: modules/provider
